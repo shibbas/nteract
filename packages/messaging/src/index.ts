@@ -256,7 +256,7 @@ source.pipe(
 );
 
 /**
- * Get all execution error from the observable of the jupyter messages
+ * Get all execution errors from the observable of the jupyter messages
  */
 export const executionErrors = () => (source: Observable<JupyterMessage>) =>
 source.pipe(

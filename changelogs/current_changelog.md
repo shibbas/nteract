@@ -172,7 +172,7 @@ Provide a bulleted list of breaking changes and a reference to the PR(s) contain
 #### New Features
 
 Provide a bulleted list of new features or improvements and a reference to the PR(s) containing these changes.
-- Add support for retreiving executionErrors including aborted requests ([PR5561](https://github.com/nteract/nteract/pull/5561))
+- Add support for retrieving executionErrors including aborted requests ([PR5561](https://github.com/nteract/nteract/pull/5561))
 
 #### Bug Fixes
 
