@@ -38,6 +38,7 @@ const mockEditor = {
   onDidFocusEditorText: jest.fn(),
   onDidBlurEditorText: jest.fn(),
   onDidChangeCursorSelection: jest.fn(),
+  onDidFocusEditorWidget: jest.fn(),
   onDidBlurEditorWidget: jest.fn(),
   onMouseMove: jest.fn(),
   updateOptions: jest.fn(),
@@ -49,6 +50,7 @@ const mockEditor = {
   getSelection: jest.fn(),
   focus: jest.fn(),
   hasTextFocus: jest.fn(),
+  hasWidgetFocus: jest.fn(),
   addCommand: jest.fn(),
   changeViewZones: jest.fn(),
 };
@@ -127,8 +129,11 @@ describe("MonacoEditor lifeCycle methods set up", () => {
     expect(MonacoEditor.prototype.calculateHeight).toHaveBeenCalledTimes(1);
   });
 
-  it("Should set editor's focus on render if editorFocused prop is set and editor does not have focus", () => {
-    mockEditor.hasTextFocus = jest.fn().mockReturnValue(false);
+  it("Should set editor's focus on render if editorFocused prop is set and editor text or widget does not have focus", () => {
+    mockEditor.hasWidgetFocus = jest.fn().mockReturnValue(false);
+    // hasWidgetFocus() would return false in the following case:
+    // 1. The editor text and editor widget(s) both do not have focus
+    // Since, neither an editor widget nor the editor text have focus, we explicitly set editor's focus.
     mount(
       <MonacoEditor
         {...monacoEditorCommonProps}
@@ -142,8 +147,12 @@ describe("MonacoEditor lifeCycle methods set up", () => {
     expect(mockEditor.focus).toHaveBeenCalledTimes(1);
   });
 
-  it("Should not set editor's focus on render if editorFocused prop is set but editor already has focus", () => {
-    mockEditor.hasTextFocus = jest.fn().mockReturnValue(true);
+  it("Should not set editor's focus on render if editorFocused prop is set but editor text or a widget already has focus", () => {
+    mockEditor.hasWidgetFocus = jest.fn().mockReturnValue(true);
+    // hasWidgetFocus() would return true in the following cases:
+    // 1. Editor text has focus i.e. cursor blink
+    // 2. An editor widget has focus i.e. context menu, command palette
+    // In both the scenarios we want to preserve the editor focus state and not steal the focus from a widget
     mount(
       <MonacoEditor
         {...monacoEditorCommonProps}

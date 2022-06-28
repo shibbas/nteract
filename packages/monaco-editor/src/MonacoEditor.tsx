@@ -96,7 +96,6 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   contentHeight?: number;
   private cursorPositionListener?: monaco.IDisposable;
 
-  private blurEditorWidgetListener?: monaco.IDisposable;
   private mouseMoveListener?: monaco.IDisposable;
 
   constructor(props: IMonacoProps) {
@@ -237,7 +236,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       this.toggleEditorOptions(!!this.props.editorFocused);
 
       if (this.props.editorFocused) {
-        if (!this.editor.hasTextFocus()) {
+        if (!this.editor.hasWidgetFocus()) {
           // Bring browser focus to the editor if text not already in focus
           this.editor.focus();
         }
@@ -265,8 +264,8 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
         }
       });
       this.editor.onDidChangeModelContent(this.onDidChangeModelContent);
-      this.editor.onDidFocusEditorText(this.onFocus);
-      this.editor.onDidBlurEditorText(this.onBlur);
+      this.editor.onDidFocusEditorWidget(this.onFocus);
+      this.editor.onDidBlurEditorWidget(this.onBlur);
       this.calculateHeight();
 
       // Ensures that the source contents of the editor (value) is consistent with the state of the editor
@@ -274,11 +273,6 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       if(this.props.cursorPositionHandler){
         this.props.cursorPositionHandler(this.editor, this.props);
       }
-
-      // When editor loses focus, hide parameter widgets (if any currently displayed).
-      this.blurEditorWidgetListener = this.editor.onDidBlurEditorWidget(() => {
-        this.hideParameterWidget();
-      });
 
       if (this.editor) {
         this.mouseMoveListener = this.editor.onMouseMove((e: any) => {
@@ -352,7 +346,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
             }
 
             // Set focus
-            if (editorFocused && !editor.hasTextFocus()) {
+            if (editorFocused && !editor.hasWidgetFocus()) {
               editor.focus();
             }
 
@@ -380,7 +374,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
 
     // Set focus
-    if (editorFocused && !this.editor.hasTextFocus()) {
+    if (editorFocused && !this.editor.hasWidgetFocus()) {
       this.editor.focus();
     }
 
@@ -404,9 +398,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
         console.error(`Error occurs in disposing editor: ${JSON.stringify(err)}`);
       }
     }
-    if (this.blurEditorWidgetListener) {
-      this.blurEditorWidgetListener.dispose();
-    }
+
     if (this.mouseMoveListener) {
       this.mouseMoveListener.dispose();
     }
@@ -445,6 +437,8 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
     this.toggleEditorOptions(false);
     this.unregisterCursorListener();
+    // When editor loses focus, hide parameter widgets (if any currently displayed).
+    this.hideParameterWidget();
   }
 
   private registerCursorListener() {
