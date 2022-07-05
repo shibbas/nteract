@@ -55,9 +55,9 @@ Provide a bulleted list of breaking changes and a reference to the PR(s) contain
 
 #### New Features
 
-- Add support for Markdown cell attachments ([PR#5694])(https://github.com/nteract/nteract/pull/5694)
-
 Provide a bulleted list of new features or improvements and a reference to the PR(s) containing these changes.
+
+- Add support for Markdown cell attachments ([PR#5694])(https://github.com/nteract/nteract/pull/5694)
 
 #### Bug Fixes
 
@@ -203,6 +203,7 @@ Provide a bulleted list of breaking changes and a reference to the PR(s) contain
 
 - New mythic package, will setup a transient in-memory configuration store, but different backends (such as using a configuration file) can be setup (see below). ([PR#5137](https://github.com/nteract/nteract/pull/5137))
 - To use the package, either:
+
   - use the `makeConfigureStore` function from `@nteract/myths`:
 
     ```typescript
@@ -218,8 +219,10 @@ Provide a bulleted list of breaking changes and a reference to the PR(s) contain
     ```
 
   - or call `configuration.rootReducer(state, action)` in your reducer and add the return value of `configuration.makeRootEpic()` to your epics.
+
 - Dispatch the return value of `setConfigFile(<path>)` to make it load/write/watch a config file instead.
 - To define configuration options, use `defineConfigOption(...)`:
+
   ```typescript
   import { defineConfigOption } from "@nteract/mythic-configuration";
 
@@ -234,9 +237,11 @@ Provide a bulleted list of breaking changes and a reference to the PR(s) contain
     defaultValue: 4
   });
   ```
+
 - You can then use the selector (e.g. `tabSize` above) to get the value from a store (e.g. `tabSize(store.getState())`).
 - You can then alter the state by dispatching the result of the action function (e.g. `setTabSize` above, `store.dispatch(setTabSize(4))`).
 - If you have a group of config options with a common prefix (e.g. `codemirror.<...>`), you can get a selector for the whole group with `createConfigCollection(...)`:
+
   ```typescript
   import { createConfigCollection } from "@nteract/mythic-configuration";
 
@@ -244,16 +249,20 @@ Provide a bulleted list of breaking changes and a reference to the PR(s) contain
     key: "codeMirror"
   });
   ```
+
   You can then do something like `codeMirrorConfig(store.getState())` to get something like
+
   ```javascript
   {
     tabSize: 4,
     // ... other options starting with `codemirror.`, potentially nested if more than one dot
   }
   ```
+
 - The state is stored under `__private__.configuration` in the store, but it shouldn't be neccessary to directly access it.
 - To type the state/store you can use `HasPrivateConfigurationState`.
 - If you need a different way of persisting the config, you can set your own backend, e.g.:
+
   ```typescript
   // Since the cats are typically lazing about the computer, let's utilize them to store our
   // config...
