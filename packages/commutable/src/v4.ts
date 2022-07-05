@@ -45,6 +45,7 @@ import {
   demultiline,
   ExecutionCount,
   JSONObject,
+  MimeBundle,
   MultiLineString,
   remultiline
 } from "./primitives";
@@ -70,6 +71,7 @@ export interface CodeCell {
 }
 
 export interface MarkdownCell {
+  attachments?: { [mime_type: string]: MultiLineString }
   cell_type: "markdown";
   id?: string;
   metadata: JSONObject;
@@ -126,6 +128,7 @@ function createImmutableMarkdownCell(
   cell: MarkdownCell
 ): ImmutableMarkdownCell {
   return makeMarkdownCell({
+    attachments: cell.attachments ? ImmutableMap(cell.attachments).map((data: MultiLineString) => demultiline(data)) : undefined,
     cell_type: cell.cell_type,
     source: demultiline(cell.source),
     metadata: createImmutableMetadata(cell.metadata)
@@ -213,6 +216,11 @@ function metadataToJS(immMetadata: ImmutableMap<string, any>): JSONObject {
   return immMetadata.toJS() as JSONObject;
 }
 
+function attachmentsToJS(immAttachments: ImmutableMap<string, string> | undefined): MimeBundle | undefined
+{
+  return immAttachments?.toJS() as MimeBundle | undefined
+}
+
 export function outputToJS(output: ImmutableOutput): OnDiskOutput {
   switch (output.output_type) {
     case "execute_result":
@@ -251,6 +259,7 @@ export function outputToJS(output: ImmutableOutput): OnDiskOutput {
 
 function markdownCellToJS(immCell: ImmutableMarkdownCell): MarkdownCell {
   return {
+    attachments: attachmentsToJS(immCell.attachments),
     cell_type: "markdown",
     source: remultiline(immCell.source),
     metadata: metadataToJS(immCell.metadata)

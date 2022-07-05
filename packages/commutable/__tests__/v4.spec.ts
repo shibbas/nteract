@@ -41,6 +41,19 @@ describe("cellToJS", () => {
     expect(cellToJS(codeCell).cell_type).toBe("code");
     expect(cellToJS(markdownCell).cell_type).toBe("markdown");
   });
+  it("can create and convert a markdown cell with attachments", () => {
+    const markdownCell = createMarkdownCell({
+      attachments: Immutable.Map({
+        "4e9a85bc-16ff-4d09-a23d-b3f731a5cc16.jpg": {
+          "image/jpeg": 
+          "<base64-string>"
+        }
+      })
+    });
+    const markdownCellAsJs = cellToJS(markdownCell);
+    expect(markdownCellAsJs.attachments).toBeDefined();
+    expect(markdownCellAsJs.attachments).toHaveProperty(["4e9a85bc-16ff-4d09-a23d-b3f731a5cc16.jpg", "image/jpeg"], "<base64-string>");
+  })
 });
 
 describe("outputToJS", () => {

@@ -1,6 +1,6 @@
 import { ImmutableOutput } from "./outputs";
 
-import { ExecutionCount } from "./primitives";
+import { ExecutionCount, MimeBundle } from "./primitives";
 
 import {
   List as ImmutableList,
@@ -44,6 +44,7 @@ export type ImmutableCodeCell = RecordOf<CodeCellParams>;
 /* MarkdownCell Record Boilerplate */
 
 export interface MarkdownCellParams {
+  attachments?: ImmutableMap<string, MimeBundle>;
   cell_type: "markdown";
   id?: string;
   source: string;
@@ -51,6 +52,7 @@ export interface MarkdownCellParams {
 }
 
 export const makeMarkdownCell = Record<MarkdownCellParams>({
+  attachments: undefined,
   cell_type: "markdown",
   metadata: ImmutableMap({
     nteract: ImmutableMap({
