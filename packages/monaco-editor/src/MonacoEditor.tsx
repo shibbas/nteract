@@ -71,8 +71,8 @@ export interface IMonacoConfiguration {
   lineNumbers?: boolean;
   /** automatically adjust size to fit content, default is true */
   autoFitContentHeight?: boolean;
-  /** set a max height in number of pixels */
-  maxHeight?: number;
+  /** set a max content height in number of pixels, this only works when autoFitContentHeight is true*/
+  maxContentHeight?: number;
   /** set height of editor to fit the specified number of lines in display */
   numberOfLines?: number;
   indentSize?: number;
@@ -143,10 +143,10 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     if (typeof height === "undefined") {
       // Retrieve content height directly from the editor if no height provided as param
       height = this.editor.getContentHeight();
+    }
 
-      if(this.props.maxHeight) {
-        height = Math.min(height, this.props.maxHeight);
-      }
+    if(this.props.maxContentHeight) {
+      height = Math.min(height, this.props.maxContentHeight);
     }
 
     if (this.editorContainerRef && this.editorContainerRef.current && (this.contentHeight !== height)) {
