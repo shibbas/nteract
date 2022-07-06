@@ -165,6 +165,27 @@ describe("cell ids", () => {
         initial
       );
     });
+    it("can read notebook containing a markdown cell with attachments", () => {
+      const sampleMarkdownCell = createMarkdownCell({
+        attachments: Immutable.Map({
+          "foo.gif": {
+            "image/gif": ["<mulitline-base64", "-string>"]
+          }
+        })
+      }).toJS();
+      const notebook = getNotebook({
+        cells: [
+          {
+            ...sampleMarkdownCell,
+            id: "markdown-test-cell"
+          }
+        ]
+      });
+      const immNotebook = fromJS(notebook);
+      const markdownCell = immNotebook.getIn(["cellMap", "markdown-test-cell"]).toJS();
+
+      expect(markdownCell).toHaveProperty(["attachments", "foo.gif", "image/gif"], "<mulitline-base64-string>");
+    });
   });
 
   describe("toJS", () => {

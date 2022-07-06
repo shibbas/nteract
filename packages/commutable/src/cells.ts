@@ -1,6 +1,6 @@
 import { ImmutableOutput } from "./outputs";
 
-import { ExecutionCount, MimeBundle } from "./primitives";
+import { ExecutionCount, MimeBundle, MultiLineString } from "./primitives";
 
 import {
   List as ImmutableList,
@@ -44,7 +44,7 @@ export type ImmutableCodeCell = RecordOf<CodeCellParams>;
 /* MarkdownCell Record Boilerplate */
 
 export interface MarkdownCellParams {
-  attachments?: ImmutableMap<string, MimeBundle>;
+  attachments?: ImmutableMap<string, MimeBundle<MultiLineString>>;
   cell_type: "markdown";
   id?: string;
   source: string;
