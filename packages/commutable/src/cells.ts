@@ -1,6 +1,6 @@
 import { ImmutableOutput } from "./outputs";
 
-import { ExecutionCount, MimeBundle, MultiLineString } from "./primitives";
+import { ExecutionCount, MimeBundle } from "./primitives";
 
 import {
   List as ImmutableList,
