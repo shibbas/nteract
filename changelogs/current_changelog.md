@@ -57,6 +57,8 @@ Provide a bulleted list of breaking changes and a reference to the PR(s) contain
 
 Provide a bulleted list of new features or improvements and a reference to the PR(s) containing these changes.
 
+- Add support for Markdown cell attachments ([PR#5694])(https://github.com/nteract/nteract/pull/5694)
+
 #### Bug Fixes
 
 - Monaco autocompletion should return suggestion content after the last dot - issue #5545 ([#5546](https://github.com/nteract/nteract/pull/5546))

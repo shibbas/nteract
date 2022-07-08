@@ -20,6 +20,17 @@ export function createCellId(): CellId {
 // like git and GitHub. They get converted to strings for the in-memory format.
 export type MultiLineString = string | string[];
 
+/**
+ * A mime-type keyed dictionary of data.
+ * See https://nbformat.readthedocs.io/en/latest/format_description.html#cell-attachments for docs 
+ * and https://github.com/jupyter/nbformat/blob/b23aad6e29d8c3909a1b04a7edc9ae541096dc7b/nbformat/v4/nbformat.v4.schema.json#L442 
+ * for the schema
+ */
+ export interface MimeBundle<TPayload = string> {
+  [mime_type: string]: TPayload;
+}
+
+
 export type ImmutableJSONType =
   | PrimitiveImmutable
   | ImmutableJSONMap
