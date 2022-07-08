@@ -44,7 +44,7 @@ export type ImmutableCodeCell = RecordOf<CodeCellParams>;
 /* MarkdownCell Record Boilerplate */
 
 export interface MarkdownCellParams {
-  attachments?: ImmutableMap<string, MimeBundle<MultiLineString>>;
+  attachments?: ImmutableMap<string, MimeBundle<string>>;
   cell_type: "markdown";
   id?: string;
   source: string;
