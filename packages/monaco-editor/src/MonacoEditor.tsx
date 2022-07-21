@@ -93,6 +93,12 @@ export interface IMonacoConfiguration {
   lineNumbers?: boolean;
   /** For better perf in resizing, when this is true, defer and batch the layout changes to avoid each editor layouting change cause individual browser refresh */
   batchLayoutChanges?: boolean;
+  /** 
+   * whether we call editor.layout() when the container has been resized even if the editor is not focused
+   * this way we don't need special CSS styles overriding monaco's built-in styles to make the editor resize
+   * This is better used together with batchLayoutChanges set to true so all editors layouts changes can be batched for better perf
+  */
+  shouldUpdateLayoutWhenNotFocused?: boolean;
   /** automatically adjust size to fit content, default is true */
   autoFitContentHeight?: boolean;
   /** set a max content height in number of pixels, this only works when autoFitContentHeight is true*/
@@ -337,6 +343,10 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
    * Tells editor to check the surrounding container size and resize itself appropriately
    */
   resize() {
+    if(this.props.shouldUpdateLayoutWhenNotFocused){
+      this.updateEditorLayout();
+    }
+
     // We call layout only for the focussed editor and resize other instances using CSS
     if (this.editor && this.props.editorFocused) {
       this.updateEditorLayout();
