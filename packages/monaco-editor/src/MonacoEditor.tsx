@@ -7,6 +7,28 @@ import { ContentRef } from "@nteract/core";
 import { DocumentUri } from "./documentUri";
 import debounce from "lodash.debounce";
 
+const editorsToLayout: Map<monaco.editor.IEditor,monaco.editor.IDimension|undefined> = new Map();
+let layoutTimer: ReturnType<typeof requestAnimationFrame> | null = null;
+
+/**
+ * For monaco editors, we need to call layout() on any editors that might have changed size otherwise the view will look off.
+ * These updates often happen together with other editors, such as when the window resizes.
+ * In order to avoid layout thrashing, we batch these layout calls together and perform them all at once in a RAF timeout.
+ */
+function scheduleEditorForLayout(editor: monaco.editor.IEditor, layout: monaco.editor.IDimension|undefined) {
+  editorsToLayout.set(editor, layout);
+  if (!layoutTimer) {
+    // Using RAF here ensures that the layout will happen on the next frame.
+    layoutTimer = requestAnimationFrame(() => {
+      layoutTimer = null;
+      editorsToLayout.forEach((layout, ed) => {
+        ed.layout(layout);
+      });
+      editorsToLayout.clear();
+    });
+  }
+}
+
 
 export type IModelContentChangedEvent = monaco.editor.IModelContentChangedEvent;
 
@@ -69,6 +91,8 @@ export interface IMonacoConfiguration {
   onRegisterCompletionProvider?: (languageId: string) => void;
   language: string;
   lineNumbers?: boolean;
+  /** For better perf in resizing, when this is true, defer and batch the layout changes to avoid each editor layouting change cause individual browser refresh */
+  batchLayoutChanges?: boolean;
   /** automatically adjust size to fit content, default is true */
   autoFitContentHeight?: boolean;
   /** set a max content height in number of pixels, this only works when autoFitContentHeight is true*/
@@ -122,6 +146,19 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
   }
 
+  updateEditorLayout(layout?: monaco.editor.IDimension) {
+    if(!this.editor) {
+      return;
+    }
+
+    if(this.props.batchLayoutChanges===true){
+      scheduleEditorForLayout(this.editor, layout);
+    }
+    else{
+      this.editor.layout(layout);
+    }
+  }
+
   /**
    * Adjust the height of editor container
    *
@@ -156,7 +193,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
        * This causes a forced layout by the browser
        * We pass in the expected width and height to as an optimization to avoid the forced layout
        */
-      this.editor.layout({ width: this.editor.getLayoutInfo().width, height });
+      this.updateEditorLayout({ width: this.editor.getLayoutInfo().width, height });
       this.contentHeight = height;
     }
   }
@@ -302,7 +339,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   resize() {
     // We call layout only for the focussed editor and resize other instances using CSS
     if (this.editor && this.props.editorFocused) {
-      this.editor.layout();
+      this.updateEditorLayout();
     }
   }
 
@@ -393,7 +430,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
 
     // Tells the editor pane to check if its container has changed size and fill appropriately
-    this.editor.layout();
+    this.updateEditorLayout();
   }
 
   componentWillUnmount() {
