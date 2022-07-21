@@ -429,6 +429,10 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       this.editor.focus();
     }
 
+    if(this.props.maxContentHeight !== prevProps.maxContentHeight){
+      this.calculateHeight();
+    }
+
     // Tells the editor pane to check if its container has changed size and fill appropriately
     this.updateEditorLayout();
   }
