@@ -321,8 +321,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   resize() {
     if (this.props.shouldUpdateLayoutWhenNotFocused) {
       this.updateEditorLayout();
-    }
-    else if (this.editor && this.props.editorFocused) {
+    } else if (this.editor && this.props.editorFocused) {
       // We call layout only for the focussed editor and resize other instances using CSS
       this.updateEditorLayout();
     }
