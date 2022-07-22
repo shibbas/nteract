@@ -6,29 +6,7 @@ import { completionProvider } from "./completions/completionItemProvider";
 import { ContentRef } from "@nteract/core";
 import { DocumentUri } from "./documentUri";
 import debounce from "lodash.debounce";
-
-const editorsToLayout: Map<monaco.editor.IEditor,monaco.editor.IDimension|undefined> = new Map();
-let layoutTimer: ReturnType<typeof requestAnimationFrame> | null = null;
-
-/**
- * For monaco editors, we need to call layout() on any editors that might have changed size otherwise the view will look off.
- * These updates often happen together with other editors, such as when the window resizes.
- * In order to avoid layout thrashing, we batch these layout calls together and perform them all at once in a RAF timeout.
- */
-function scheduleEditorForLayout(editor: monaco.editor.IEditor, layout: monaco.editor.IDimension|undefined) {
-  editorsToLayout.set(editor, layout);
-  if (!layoutTimer) {
-    // Using RAF here ensures that the layout will happen on the next frame.
-    layoutTimer = requestAnimationFrame(() => {
-      layoutTimer = null;
-      editorsToLayout.forEach((layout, ed) => {
-        ed.layout(layout);
-      });
-      editorsToLayout.clear();
-    });
-  }
-}
-
+import { scheduleEditorForLayout } from "./layoutSchedule";
 
 export type IModelContentChangedEvent = monaco.editor.IModelContentChangedEvent;
 
@@ -93,11 +71,11 @@ export interface IMonacoConfiguration {
   lineNumbers?: boolean;
   /** For better perf in resizing, when this is true, defer and batch the layout changes to avoid each editor layouting change cause individual browser refresh */
   batchLayoutChanges?: boolean;
-  /** 
+  /**
    * whether we call editor.layout() when the container has been resized even if the editor is not focused
    * this way we don't need special CSS styles overriding monaco's built-in styles to make the editor resize
    * This is better used together with batchLayoutChanges set to true so all editors layouts changes can be batched for better perf
-  */
+   */
   shouldUpdateLayoutWhenNotFocused?: boolean;
   /** automatically adjust size to fit content, default is true */
   autoFitContentHeight?: boolean;
@@ -124,7 +102,6 @@ export type IMonacoProps = IMonacoComponentProps & IMonacoConfiguration;
  * Creates a MonacoEditor instance
  */
 export default class MonacoEditor extends React.Component<IMonacoProps> {
-
   editor?: monaco.editor.IStandaloneCodeEditor;
   editorContainerRef = React.createRef<HTMLDivElement>();
   contentHeight?: number;
@@ -148,19 +125,18 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
 
   onDidChangeModelContent(e: monaco.editor.IModelContentChangedEvent) {
     if (this.editor && this.props.onChange) {
-        this.props.onChange(this.editor.getValue(), e);
+      this.props.onChange(this.editor.getValue(), e);
     }
   }
 
   updateEditorLayout(layout?: monaco.editor.IDimension) {
-    if(!this.editor) {
+    if (!this.editor) {
       return;
     }
 
-    if(this.props.batchLayoutChanges===true){
+    if (this.props.batchLayoutChanges === true) {
       scheduleEditorForLayout(this.editor, layout);
-    }
-    else{
+    } else {
       this.editor.layout(layout);
     }
   }
@@ -179,7 +155,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
 
     const shouldProceed = this.props.autoFitContentHeight ?? true;
-    if(!shouldProceed) {
+    if (!shouldProceed) {
       return;
     }
 
@@ -188,11 +164,11 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       height = this.editor.getContentHeight();
     }
 
-    if(this.props.maxContentHeight) {
+    if (this.props.maxContentHeight) {
       height = Math.min(height, this.props.maxContentHeight);
     }
 
-    if (this.editorContainerRef && this.editorContainerRef.current && (this.contentHeight !== height)) {
+    if (this.editorContainerRef && this.editorContainerRef.current && this.contentHeight !== height) {
       this.editorContainerRef.current.style.height = height + "px";
       /**
        * With no params, the layout method queries the DOM to get the parent container dimensions
@@ -327,7 +303,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
 
       // Ensures that the source contents of the editor (value) is consistent with the state of the editor
       this.editor.setValue(this.props.value);
-      if(this.props.cursorPositionHandler){
+      if (this.props.cursorPositionHandler) {
         this.props.cursorPositionHandler(this.editor, this.props);
       }
 
@@ -343,12 +319,11 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
    * Tells editor to check the surrounding container size and resize itself appropriately
    */
   resize() {
-    if(this.props.shouldUpdateLayoutWhenNotFocused){
+    if (this.props.shouldUpdateLayoutWhenNotFocused) {
       this.updateEditorLayout();
     }
-
-    // We call layout only for the focussed editor and resize other instances using CSS
-    if (this.editor && this.props.editorFocused) {
+    else if (this.editor && this.props.editorFocused) {
+      // We call layout only for the focussed editor and resize other instances using CSS
       this.updateEditorLayout();
     }
   }
@@ -360,7 +335,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
 
     const { value, language, contentRef, id, editorFocused, theme } = this.props;
 
-    if(this.props.cursorPositionHandler){
+    if (this.props.cursorPositionHandler) {
       this.props.cursorPositionHandler(this.editor, this.props);
     }
 
@@ -373,7 +348,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     // and the value has actually changed.
     if (prevProps.value !== this.props.value && this.editor.getValue() !== this.props.value) {
       this.editor.setValue(this.props.value);
-    } 
+    }
 
     completionProvider.setChannels(this.props.channels);
 
@@ -383,41 +358,42 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     // Apply new model to the editor when the language is changed.
     const model = this.editor.getModel();
     if (model && language && model.getModeId() !== language) {
+      // Get a reference to the current editor
+      const editor = this.editor;
 
-        // Get a reference to the current editor
-        const editor = this.editor;
+      // We need to set the model in a separate event because the `language` prop update happens before the
+      // internal editor receives an update to the cursor position when invoking language magics. Additionally,
+      // we need to dispose of the old model in a separate event. We cannot dispose of the model within the
+      // componentDidUpdate method or else the editor will throw an exception. Zero in the timeout field
+      // means execute immediately but in a seperate next event.
+      setTimeout(() => {
+        const newUri = DocumentUri.createCellUri(contentRef, id, language);
+        if (!monaco.editor.getModel(newUri)) {
+          // Save the cursor position before we set new model.
+          const position = editor.getPosition();
 
-        // We need to set the model in a separate event because the `language` prop update happens before the
-        // internal editor receives an update to the cursor position when invoking language magics. Additionally,
-        // we need to dispose of the old model in a separate event. We cannot dispose of the model within the
-        // componentDidUpdate method or else the editor will throw an exception. Zero in the timeout field
-        // means execute immediately but in a seperate next event.
-        setTimeout(() => {
-          const newUri = DocumentUri.createCellUri(contentRef, id, language);
-          if (!monaco.editor.getModel(newUri)) {
-            // Save the cursor position before we set new model.
-            const position = editor.getPosition();
+          // Set new model targeting the changed language.
+          editor.setModel(monaco.editor.createModel(value, language, newUri));
 
-            // Set new model targeting the changed language.
-            editor.setModel(monaco.editor.createModel(value, language, newUri));
-
-            // Restore cursor position to new model.
-            if (position) {
-              editor.setPosition(position);
-            }
-
-            // Set focus
-            if (editorFocused && !editor.hasWidgetFocus()) {
-              editor.focus();
-            }
-
-            // Dispose the old model
-            model.dispose()
+          // Restore cursor position to new model.
+          if (position) {
+            editor.setPosition(position);
           }
-        }, 0);
+
+          // Set focus
+          if (editorFocused && !editor.hasWidgetFocus()) {
+            editor.focus();
+          }
+
+          // Dispose the old model
+          model.dispose();
+        }
+      }, 0);
     }
-    
-    const monacoUpdateOptions: monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions = { readOnly: this.props.readOnly };
+
+    const monacoUpdateOptions: monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions = {
+      readOnly: this.props.readOnly
+    };
     if (theme) {
       monacoUpdateOptions.theme = theme;
     }
@@ -439,7 +415,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       this.editor.focus();
     }
 
-    if(this.props.maxContentHeight !== prevProps.maxContentHeight){
+    if (this.props.maxContentHeight !== prevProps.maxContentHeight) {
       this.calculateHeight();
     }
 
@@ -489,7 +465,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   }
 
   private onFocus() {
-    if(this.props.onFocusChange){
+    if (this.props.onFocusChange) {
       this.props.onFocusChange(true);
     }
     this.toggleEditorOptions(true);
@@ -497,7 +473,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   }
 
   private onBlur() {
-    if(this.props.onFocusChange){
+    if (this.props.onFocusChange) {
       this.props.onFocusChange(false);
     }
     this.toggleEditorOptions(false);
@@ -577,37 +553,33 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
    *
    * This method is only used for blurring at the moment given that parameter widgets from
    * other cells are hidden by mouse move events.
-   * 
+   *
    * @private
    * @returns
    * @memberof MonacoEditor
    */
   private hideParameterWidget() {
-    if (
-      !this.editor ||
-      !this.editor.getDomNode() ||
-      !this.editorContainerRef.current
-    ) {
+    if (!this.editor || !this.editor.getDomNode() || !this.editorContainerRef.current) {
       return;
     }
 
     // Find all elements that the user is hovering over.
     // It's possible the parameter widget is one of them.
-    const hoverElements: Element[] = Array.prototype.slice.call(document.querySelectorAll(':hover'));
+    const hoverElements: Element[] = Array.prototype.slice.call(document.querySelectorAll(":hover"));
 
     // These are the classes that will appear on a parameter widget when they are visible.
-    const parameterWidgetClasses = ['editor-widget', 'parameter-hints-widget', 'visible'];
+    const parameterWidgetClasses = ["editor-widget", "parameter-hints-widget", "visible"];
 
     // Find the parameter widget the user is currently hovering over.
-    let isParameterWidgetHovered = hoverElements.find(item => {
-      if (typeof item.className !== 'string') {
+    let isParameterWidgetHovered = hoverElements.find((item) => {
+      if (typeof item.className !== "string") {
         return false;
       }
 
       // Check if user is hovering over a parameter widget.
-      const classes = item.className.split(' ');
+      const classes = item.className.split(" ");
 
-      if (!parameterWidgetClasses.every(cls => classes.indexOf(cls) >= 0)) {
+      if (!parameterWidgetClasses.every((cls) => classes.indexOf(cls) >= 0)) {
         // Not all classes required in a parameter hint widget are in this element.
         // Hence this is not a parameter widget.
         return false;
@@ -636,7 +608,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     // However some of the parameter widgets associated with this monaco editor are visible.
     // We need to hide them.
     // Solution: Hide the widgets manually.
-    this.hideWidgets(this.editorContainerRef.current, ['.parameter-hints-widget']);
+    this.hideWidgets(this.editorContainerRef.current, [".parameter-hints-widget"]);
   }
 
   /**
@@ -651,14 +623,14 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     for (const selector of selectors) {
       for (const widget of Array.from<HTMLDivElement>(widgetParent.querySelectorAll(selector))) {
         widget.setAttribute(
-          'class',
+          "class",
           widget.className
-            .split(' ')
-            .filter((cls: string) => cls !== 'visible')
-            .join(' ')
+            .split(" ")
+            .filter((cls: string) => cls !== "visible")
+            .join(" ")
         );
-        if (widget.style.visibility !== 'hidden') {
-          widget.style.visibility = 'hidden';
+        if (widget.style.visibility !== "hidden") {
+          widget.style.visibility = "hidden";
         }
       }
     }
@@ -677,16 +649,17 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       return;
     }
     const widgetParents: HTMLDivElement[] = Array.prototype.slice.call(
-      document.querySelectorAll('div.monaco-container'));
+      document.querySelectorAll("div.monaco-container")
+    );
 
     widgetParents
-      .filter(widgetParent => widgetParent !== this.editorContainerRef.current?.parentElement)
-      .forEach(widgetParent => this.hideWidgets(widgetParent, ['.parameter-hints-widget']));
+      .filter((widgetParent) => widgetParent !== this.editorContainerRef.current?.parentElement)
+      .forEach((widgetParent) => this.hideWidgets(widgetParent, [".parameter-hints-widget"]));
   }
 
   /**
-   * Return true if (x,y) coordinates overlap with an element's bounding rect. 
-   * @param {HTMLDivElement} element 
+   * Return true if (x,y) coordinates overlap with an element's bounding rect.
+   * @param {HTMLDivElement} element
    * @param {number} x
    * @param {number} y
    * @param {number} padding
@@ -710,11 +683,11 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   /**
    * Hide all other widgets belonging to other cells only if the currently active
    * parameter widget (at most one) is being hovered by the user.
-   * @param {number} x 
-   * @param {number} y 
+   * @param {number} x
+   * @param {number} y
    */
   private handleCoordsOutsideWidgetActiveRegion(x: number, y: number) {
-    let widget = document.querySelector('.parameter-hints-widget');
+    let widget = document.querySelector(".parameter-hints-widget");
     if (widget != null && !this.coordsInsideElement(widget, x, y)) {
       this.hideAllOtherParameterWidgets();
     }
