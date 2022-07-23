@@ -349,4 +349,74 @@ describe("MonacoEditor resize handler when window size changes", () => {
     // Restore spy
     resizeHandlerSpy.mockRestore();
   });
+
+  it("Resize handler should trigger an editor.layout call for a non-focused editor when shouldUpdateLayoutWhenNotFocused=true", () => {
+    // Create a new editor instance with the mock layout
+    const mockEditorLayout = jest.fn();
+    const newMockEditor = {...mockEditor};
+    newMockEditor.layout = mockEditorLayout;
+    mockCreateEditor.mockReturnValue(newMockEditor);
+    // We spy on the resize handler calls without changing the implementation
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+
+    mount(
+      <MonacoEditor
+        {...monacoEditorCommonProps}
+        channels={undefined}
+        onChange={jest.fn()}
+        onFocusChange={jest.fn()}
+        editorFocused={false}
+        shouldUpdateLayoutWhenNotFocused={true}
+      />
+    );
+
+    (window as any).innerWidth = 500;
+    window.dispatchEvent(new Event('resize'));
+
+    expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
+    expect(mockEditorLayout).toHaveBeenCalledTimes(1);
+
+    // Restore spy
+    resizeHandlerSpy.mockRestore();
+  });
+
+  it("Resize handler should trigger an editor.layout call asynchronously when batchLayoutChanges=true", async () => {
+    // Create a new editor instance with the mock layout
+    const mockEditorLayout = jest.fn();
+    const newMockEditor = {...mockEditor};
+    newMockEditor.layout = mockEditorLayout;
+    mockCreateEditor.mockReturnValue(newMockEditor);
+    const originRAF = window.requestAnimationFrame;
+    const mockRAF = jest.fn((callback) => originRAF(callback));
+    window.requestAnimationFrame = mockRAF;
+
+    // We spy on the resize handler calls without changing the implementation
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+
+    mount(
+      <MonacoEditor
+        {...monacoEditorCommonProps}
+        channels={undefined}
+        onChange={jest.fn()}
+        onFocusChange={jest.fn()}
+        editorFocused={true}
+        batchLayoutChanges={true}
+      />
+    );
+
+    (window as any).innerWidth = 500;
+    window.dispatchEvent(new Event('resize'));
+
+    expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
+    expect(mockEditorLayout).toHaveBeenCalledTimes(0);
+
+    expect(mockRAF).toHaveBeenCalledTimes(1);
+
+    // wait on the second RAF to returned, which should be called after the first RAF has been executed
+    await new Promise(originRAF);
+    expect(mockEditorLayout).toHaveBeenCalledTimes(1);
+
+    // Restore spy
+    resizeHandlerSpy.mockRestore();
+  });
 });
