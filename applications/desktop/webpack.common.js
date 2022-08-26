@@ -87,11 +87,19 @@ const rendererConfig = {
         },
       },
       {
-        test: /\.m?js$/,
+        test: /\.js$/,
+        include: [
+          path.resolve(__dirname, '../../node_modules/monaco-editor')
+        ],
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env']
+            presets: ['@babel/preset-env'],
+            plugins: [
+              ["@babel/transform-runtime", {
+                "regenerator": true
+              }]
+            ]
           }
         }
       }
