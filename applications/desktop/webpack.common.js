@@ -85,6 +85,15 @@ const rendererConfig = {
           publicPath: '../lib',
           outputPath: '../lib'
         },
+      },
+      {
+        test: /\.m?js$/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env']
+          }
+        }
       }
     ],
   },
