@@ -215,7 +215,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
         fixedOverflowWidgets: true,
         find: {
           addExtraSpaceOnTop: false, // pops the editor out of alignment if turned on
-          seedSearchStringFromSelection: "always", // default is true
+          seedSearchStringFromSelection: "always", // default is "always"
           autoFindInSelection: "never" // default is "never"
         },
         language: this.props.language,
