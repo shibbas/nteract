@@ -34,7 +34,7 @@ export const customMonacoDarkTheme: monaco.editor.IStandaloneThemeData = {
   inherit: true,
   rules: [],
   colors: {
-    "editor.background": "#111"
+    "editor.background": "#111111"
   }
 };
 
