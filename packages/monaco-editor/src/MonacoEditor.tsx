@@ -134,8 +134,18 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
   }
 
+  isContainerHidden(){
+    return !this.editorContainerRef.current?.offsetHeight;
+  }
+
   updateEditorLayout(layout?: monaco.editor.IDimension) {
     if (!this.editor) {
+      return;
+    }
+
+    // when skipLayoutWhenHidden is true and the editor's parent or ancestor container is hidden, 
+    // we will not layout the editor. 
+    if(this.props.skipLayoutWhenHidden && this.isContainerHidden()) {
       return;
     }
 
@@ -172,7 +182,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     if (this.props.maxContentHeight) {
       height = Math.min(height, this.props.maxContentHeight);
     }
-
+    
     if (this.editorContainerRef && this.editorContainerRef.current && this.contentHeight !== height) {
       this.editorContainerRef.current.style.height = height + "px";
       /**
@@ -324,12 +334,6 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
    * Tells editor to check the surrounding container size and resize itself appropriately
    */
   resize() {
-    // when skipLayoutWhenHidden is true and the editor's parent or ancestor container is hidden, 
-    // we will not layout the editor. 
-    if(this.props.skipLayoutWhenHidden && !this.editorContainerRef.current?.offsetHeight) {
-      return;
-    }
-
     if (this.props.shouldUpdateLayoutWhenNotFocused) {
       this.updateEditorLayout();
     } else if (this.editor && this.props.editorFocused) {
