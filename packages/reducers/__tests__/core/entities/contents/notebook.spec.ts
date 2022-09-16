@@ -516,6 +516,16 @@ describe("newCellAppend", () => {
     );
     expect(state.getIn(["notebook", "cellOrder"]).size).toBe(3);
   });
+  test("appends a new cell at the end given cell contents", () => {
+    const originalState = initialDocument.set("notebook", fixtureCommutable);
+    const state = reducers(
+      originalState,
+      actions.createCellAppend({ cellType: "markdown", cell: emptyMarkdownCell.set("source", "test contents") })
+    );
+    expect(state.getIn(["notebook", "cellOrder"]).size).toBe(3);
+    const insertedCellId = state.getIn(["notebook", "cellOrder"]).last();
+    expect(state.getIn(["notebook", "cellMap", insertedCellId, "source"])).toEqual("test contents")
+  });
 });
 
 describe("updateSource", () => {

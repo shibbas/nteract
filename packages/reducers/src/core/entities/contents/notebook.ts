@@ -543,8 +543,11 @@ function createCellAppend(
   const { cellType } = action.payload;
   const notebook: ImmutableNotebook = state.get("notebook");
   const cellOrder: List<CellId> = notebook.get("cellOrder", List());
-  const cell: ImmutableCell =
+  let cell: ImmutableCell =
     cellType === "markdown" ? emptyMarkdownCell : emptyCodeCell;
+  if (action.payload.cell) {
+    cell = action.payload.cell;
+  }
   const index = cellOrder.count();
   const cellId = uuid();
   return state.set("notebook", insertCellAt(notebook, cell, cellId, index));
