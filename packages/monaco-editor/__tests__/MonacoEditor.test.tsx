@@ -419,4 +419,72 @@ describe("MonacoEditor resize handler when window size changes", () => {
     // Restore spy
     resizeHandlerSpy.mockRestore();
   });
+
+  it("Resize handler should trigger an editor.layout call when skipLayoutWhenHidden=true and parent container is NOT hidden", async () => {
+    // Create a new editor instance with the mock layout
+    const mockEditorLayout = jest.fn();
+    const newMockEditor = {...mockEditor};
+    newMockEditor.layout = mockEditorLayout;
+    mockCreateEditor.mockReturnValue(newMockEditor);
+
+    // We spy on the resize handler calls without changing the implementation
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+
+    const wrapper = mount(
+      <MonacoEditor
+        {...monacoEditorCommonProps}
+        channels={undefined}
+        onChange={jest.fn()}
+        onFocusChange={jest.fn()}
+        editorFocused={true}
+        skipLayoutWhenHidden={true}
+      />
+    );
+
+    const componentInstance = wrapper.instance() as MonacoEditor;
+    componentInstance.isContainerHidden = jest.fn(()=>false);
+
+    (window as any).innerWidth = 500;
+    window.dispatchEvent(new Event('resize'));
+
+    expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
+    expect(mockEditorLayout).toHaveBeenCalledTimes(1);
+
+    // Restore spy
+    resizeHandlerSpy.mockRestore();
+  });
+
+  it("Resize handler should NOT trigger an editor.layout call when skipLayoutWhenHidden=true and parent container is hidden", async () => {
+    // Create a new editor instance with the mock layout
+    const mockEditorLayout = jest.fn();
+    const newMockEditor = {...mockEditor};
+    newMockEditor.layout = mockEditorLayout;
+    mockCreateEditor.mockReturnValue(newMockEditor);
+
+    // We spy on the resize handler calls without changing the implementation
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+
+    const wrapper = mount(
+      <MonacoEditor
+        {...monacoEditorCommonProps}
+        channels={undefined}
+        onChange={jest.fn()}
+        onFocusChange={jest.fn()}
+        editorFocused={true}
+        skipLayoutWhenHidden={true}
+      />
+    );
+
+    const componentInstance = wrapper.instance() as MonacoEditor;
+    componentInstance.isContainerHidden = jest.fn(()=>true);
+
+    (window as any).innerWidth = 500;
+    window.dispatchEvent(new Event('resize'));
+
+    expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
+    expect(mockEditorLayout).toHaveBeenCalledTimes(0);
+
+    // Restore spy
+    resizeHandlerSpy.mockRestore();
+  });
 });

@@ -77,6 +77,11 @@ export interface IMonacoConfiguration {
    * This is better used together with batchLayoutChanges set to true so all editors layouts changes can be batched for better perf
    */
   shouldUpdateLayoutWhenNotFocused?: boolean;
+  /**
+   * whether we should call editor.layout() when the container or its parent is hidden by "display:none" or the height is set to 0
+   * default is false
+   */
+  skipLayoutWhenHidden?: boolean;
   /** automatically adjust size to fit content, default is true */
   autoFitContentHeight?: boolean;
   /** set a max content height in number of pixels, this only works when autoFitContentHeight is true*/
@@ -129,8 +134,18 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
   }
 
+  isContainerHidden(){
+    return !this.editorContainerRef.current?.offsetHeight;
+  }
+
   updateEditorLayout(layout?: monaco.editor.IDimension) {
     if (!this.editor) {
+      return;
+    }
+
+    // when skipLayoutWhenHidden is true and the editor's parent or ancestor container is hidden, 
+    // we will not layout the editor. 
+    if(this.props.skipLayoutWhenHidden && this.isContainerHidden()) {
       return;
     }
 
@@ -167,7 +182,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     if (this.props.maxContentHeight) {
       height = Math.min(height, this.props.maxContentHeight);
     }
-
+    
     if (this.editorContainerRef && this.editorContainerRef.current && this.contentHeight !== height) {
       this.editorContainerRef.current.style.height = height + "px";
       /**
