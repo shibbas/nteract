@@ -248,6 +248,8 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
         // Disable highlight current line, too much visual noise with it on.
         // VS Code also has it disabled for their notebook experience.
         renderLineHighlight: "none",
+        // Do not include words from the editor into the autocomplete suggestions list
+        wordBasedSuggestions: false,
         scrollbar: {
           useShadows: false,
           verticalHasArrows: false,
