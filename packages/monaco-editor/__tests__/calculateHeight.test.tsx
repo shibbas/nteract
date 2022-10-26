@@ -12,7 +12,7 @@ const monacoEditorCommonProps = {
   value: "test_value",
   enableCompletion: true,
   language: "python",
-  onCursorPositionChange: () => {},
+  onCursorPositionChange: () => {}
 };
 
 // Setup items shared by all tests in this block
@@ -38,11 +38,11 @@ const mockEditor = {
   hasTextFocus: jest.fn(),
   hasWidgetFocus: jest.fn(),
   addCommand: jest.fn(),
-  changeViewZones: jest.fn(),
+  changeViewZones: jest.fn()
 };
 
 const mockEditorModel = {
-  updateOptions: jest.fn(),
+  updateOptions: jest.fn()
 };
 const mockCreateEditor = jest.fn().mockReturnValue(mockEditor);
 Monaco.editor.create = mockCreateEditor;
@@ -67,8 +67,8 @@ describe("MonacoEditor process calculateHeight correctly", () => {
     const newMockEditor = {
       ...mockEditor,
       layout: mockEditorLayout,
-      getContentHeight: ()=>contentHeight,
-      getLayoutInfo: jest.fn(()=>({width, height})),
+      getContentHeight: () => contentHeight,
+      getLayoutInfo: jest.fn(() => ({ width, height }))
     };
 
     mockCreateEditor.mockReturnValue(newMockEditor);
@@ -87,13 +87,13 @@ describe("MonacoEditor process calculateHeight correctly", () => {
     editorInstance.calculateHeight();
 
     expect(mockEditorLayout).toHaveBeenCalledTimes(1);
-    expect(mockEditorLayout.mock.calls[0][0]).toEqual({width, height: maxHeight});
+    expect(mockEditorLayout.mock.calls[0][0]).toEqual({ width, height: maxHeight });
   });
 
   it("should not trigger layout when autoFitContentHeight is false", () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor, layout: mockEditorLayout};
+    const newMockEditor = { ...mockEditor, layout: mockEditorLayout };
 
     mockCreateEditor.mockReturnValue(newMockEditor);
     const editorWrapper = mount(
@@ -108,7 +108,67 @@ describe("MonacoEditor process calculateHeight correctly", () => {
     );
     const editorInstance = editorWrapper.instance() as MonacoEditor;
     editorInstance.calculateHeight();
-    
+
     expect(mockEditorLayout).toHaveBeenCalledTimes(0);
+  });
+
+  it("should NOT trigger layout when skipLayoutWhenHidden is true and parent container is hidden", () => {
+    // Create a new editor instance with the mock layout
+    const mockEditorLayout = jest.fn();
+    const newMockEditor = {
+      ...mockEditor,
+      layout: mockEditorLayout,
+      getContentHeight: jest.fn(() => 100),
+      getLayoutInfo: jest.fn(() => ({ width: 100, height: 100 }))
+    };
+
+    mockCreateEditor.mockReturnValue(newMockEditor);
+    const editorWrapper = mount(
+        <MonacoEditor
+          {...monacoEditorCommonProps}
+          channels={undefined}
+          onChange={jest.fn()}
+          onFocusChange={jest.fn()}
+          editorFocused={true}
+          skipLayoutWhenHidden={true}
+        />
+    );
+
+    const editorInstance = editorWrapper.instance() as MonacoEditor;
+    editorInstance.isContainerHidden = jest.fn(()=>true);
+
+    // set an arbitary height which is different from the current height return by editor.getContentHeight()
+    editorInstance.calculateHeight(200);
+    expect(mockEditorLayout).toHaveBeenCalledTimes(0);
+  });
+
+  it("should trigger layout when skipLayoutWhenHidden is true and parent container is NOT hidden", () => {
+    // Create a new editor instance with the mock layout
+    const mockEditorLayout = jest.fn();
+    const newMockEditor = {
+      ...mockEditor,
+      layout: mockEditorLayout,
+      getContentHeight: jest.fn(() => 100),
+      getLayoutInfo: jest.fn(() => ({ width: 100, height: 100 }))
+    };
+
+    mockCreateEditor.mockReturnValue(newMockEditor);
+    const editorWrapper = mount(
+        <MonacoEditor
+          {...monacoEditorCommonProps}
+          channels={undefined}
+          onChange={jest.fn()}
+          onFocusChange={jest.fn()}
+          editorFocused={true}
+          skipLayoutWhenHidden={true}
+        />
+    );
+
+    const editorInstance = editorWrapper.instance() as MonacoEditor;
+    editorInstance.isContainerHidden = jest.fn(()=>false);
+
+    // set an arbitary height which is different from the current height return by editor.getContentHeight()
+    editorInstance.calculateHeight(200);
+    expect(mockEditorLayout).toHaveBeenCalledTimes(1);
   });
 });
