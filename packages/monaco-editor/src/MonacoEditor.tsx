@@ -7,6 +7,7 @@ import { ContentRef } from "@nteract/core";
 import { DocumentUri } from "./documentUri";
 import debounce from "lodash.debounce";
 import { scheduleEditorForLayout } from "./layoutSchedule";
+import * as resizeObserver from "./resizeObserver";
 
 export type IModelContentChangedEvent = monaco.editor.IModelContentChangedEvent;
 
@@ -134,7 +135,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
   }
 
-  isContainerHidden(){
+  isContainerHidden() {
     return !this.editorContainerRef.current?.offsetHeight;
   }
 
@@ -143,9 +144,9 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       return;
     }
 
-    // when skipLayoutWhenHidden is true and the editor's parent or ancestor container is hidden, 
-    // we will not layout the editor. 
-    if(this.props.skipLayoutWhenHidden && this.isContainerHidden()) {
+    // when skipLayoutWhenHidden is true and the editor's parent or ancestor container is hidden,
+    // we will not layout the editor.
+    if (this.props.skipLayoutWhenHidden && this.isContainerHidden()) {
       return;
     }
 
@@ -182,7 +183,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     if (this.props.maxContentHeight) {
       height = Math.min(height, this.props.maxContentHeight);
     }
-    
+
     if (this.editorContainerRef && this.editorContainerRef.current && this.contentHeight !== height) {
       this.editorContainerRef.current.style.height = height + "px";
       /**
@@ -294,7 +295,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       }
 
       // Adds listener under the resize window event which calls the resize method
-      window.addEventListener("resize", this.resize);
+      resizeObserver.observe(this, this.editorContainerRef.current);
 
       // Adds listeners for undo and redo actions emitted from the toolbar
       this.editorContainerRef.current.addEventListener("undo", () => {
@@ -444,7 +445,10 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       try {
         const model = this.editor.getModel();
         // Remove the resize listener
-        window.removeEventListener("resize", this.resize);
+        if (this.editorContainerRef.current) {
+          resizeObserver.unobserve(this.editorContainerRef.current);
+        }
+
         if (model) {
           model.dispose();
         }
@@ -528,7 +532,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
       this.editor.updateOptions({
         matchBrackets: isActive ? "always" : "never",
         occurrencesHighlight: isActive,
-        guides:{
+        guides: {
           indentation: isActive
         }
       });
