@@ -12,7 +12,7 @@ const monacoEditorCommonProps = {
   value: "test_value",
   enableCompletion: true,
   language: "python",
-  onCursorPositionChange: () => {},
+  onCursorPositionChange: () => {}
 };
 
 describe("MonacoEditor component is rendering correctly", () => {
@@ -52,11 +52,11 @@ const mockEditor = {
   hasTextFocus: jest.fn(),
   hasWidgetFocus: jest.fn(),
   addCommand: jest.fn(),
-  changeViewZones: jest.fn(),
+  changeViewZones: jest.fn()
 };
 
 const mockEditorModel = {
-  updateOptions: jest.fn(),
+  updateOptions: jest.fn()
 };
 const mockCreateEditor = jest.fn().mockReturnValue(mockEditor);
 Monaco.editor.create = mockCreateEditor;
@@ -84,9 +84,7 @@ describe("MonacoEditor default completion provider", () => {
       />
     );
     expect(mockCreateEditor).toHaveBeenCalledTimes(1);
-    expect(
-      MonacoEditor.prototype.registerDefaultCompletionProvider
-    ).toHaveBeenCalledTimes(1);
+    expect(MonacoEditor.prototype.registerDefaultCompletionProvider).toHaveBeenCalledTimes(1);
   });
 
   it("Should not call registerDefaultCompletionProvider method when registerCompletionUsingDefault is set to false", () => {
@@ -102,9 +100,7 @@ describe("MonacoEditor default completion provider", () => {
       />
     );
     expect(mockCreateEditor).toHaveBeenCalledTimes(1);
-    expect(
-      MonacoEditor.prototype.registerDefaultCompletionProvider
-    ).toHaveBeenCalledTimes(0);
+    expect(MonacoEditor.prototype.registerDefaultCompletionProvider).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -182,29 +178,19 @@ describe("MonacoEditor lifeCycle methods set up", () => {
 
   it("Should call editor setValue when value prop has changed on componentDidUpdate.", () => {
     mockEditor.setValue = jest.fn();
-    const editorWrapper = mount(
-      <MonacoEditor
-        {...monacoEditorCommonProps}
-        value="initial_value"
-      />
-    );
+    const editorWrapper = mount(<MonacoEditor {...monacoEditorCommonProps} value="initial_value" />);
     editorWrapper.setProps({ value: "different_value" });
 
-    // We expect setValue is called twice. First on componentDidMount and second on componentDidUpdate 
+    // We expect setValue is called twice. First on componentDidMount and second on componentDidUpdate
     // when the props.value has new different value.
     expect(mockEditor.setValue).toHaveBeenCalledTimes(2);
   });
 
   it("Should not call editor setValue when value prop has not changed on componentDidUpdate.", () => {
     mockEditor.setValue = jest.fn();
-    const editorWrapper = mount(
-      <MonacoEditor
-        {...monacoEditorCommonProps}
-        value="initial_value"
-      />
-    );
+    const editorWrapper = mount(<MonacoEditor {...monacoEditorCommonProps} value="initial_value" />);
     editorWrapper.setProps({ value: "initial_value" });
-    
+
     // We expect setValue is called once on componentDidMount when the props.value does not have different value.
     expect(mockEditor.setValue).toHaveBeenCalledTimes(1);
   });
@@ -264,11 +250,11 @@ describe("MonacoEditor resize handler when window size changes", () => {
   it("Should not call resize handler at all when window is not resized", () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor};
+    const newMockEditor = { ...mockEditor };
     newMockEditor.layout = mockEditorLayout;
     mockCreateEditor.mockReturnValue(newMockEditor);
     // We spy on the resize handler calls without changing the implementation
-    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "onResize");
 
     mount(
       <MonacoEditor
@@ -295,11 +281,11 @@ describe("MonacoEditor resize handler when window size changes", () => {
 
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor};
+    const newMockEditor = { ...mockEditor };
     newMockEditor.layout = mockEditorLayout;
     mockCreateEditor.mockReturnValue(newMockEditor);
     // We spy on the resize handler calls without changing the implementation
-    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "onResize");
 
     mount(
       <MonacoEditor
@@ -311,7 +297,7 @@ describe("MonacoEditor resize handler when window size changes", () => {
       />
     );
     (window as any).innerWidth = 500;
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
 
     // Resize handler should be called
     expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
@@ -325,11 +311,11 @@ describe("MonacoEditor resize handler when window size changes", () => {
   it("Resize handler should trigger an editor.layout call for a focused editor", () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor};
+    const newMockEditor = { ...mockEditor };
     newMockEditor.layout = mockEditorLayout;
     mockCreateEditor.mockReturnValue(newMockEditor);
     // We spy on the resize handler calls without changing the implementation
-    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "onResize");
 
     mount(
       <MonacoEditor
@@ -341,7 +327,7 @@ describe("MonacoEditor resize handler when window size changes", () => {
       />
     );
     (window as any).innerWidth = 500;
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
 
     expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
     expect(mockEditorLayout).toHaveBeenCalledTimes(1);
@@ -353,11 +339,11 @@ describe("MonacoEditor resize handler when window size changes", () => {
   it("Resize handler should trigger an editor.layout call for a non-focused editor when shouldUpdateLayoutWhenNotFocused=true", () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor};
+    const newMockEditor = { ...mockEditor };
     newMockEditor.layout = mockEditorLayout;
     mockCreateEditor.mockReturnValue(newMockEditor);
     // We spy on the resize handler calls without changing the implementation
-    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "onResize");
 
     mount(
       <MonacoEditor
@@ -371,7 +357,7 @@ describe("MonacoEditor resize handler when window size changes", () => {
     );
 
     (window as any).innerWidth = 500;
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
 
     expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
     expect(mockEditorLayout).toHaveBeenCalledTimes(1);
@@ -383,7 +369,7 @@ describe("MonacoEditor resize handler when window size changes", () => {
   it("Resize handler should trigger an editor.layout call asynchronously when batchLayoutChanges=true", async () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor};
+    const newMockEditor = { ...mockEditor };
     newMockEditor.layout = mockEditorLayout;
     mockCreateEditor.mockReturnValue(newMockEditor);
     const originRAF = window.requestAnimationFrame;
@@ -391,7 +377,7 @@ describe("MonacoEditor resize handler when window size changes", () => {
     window.requestAnimationFrame = mockRAF;
 
     // We spy on the resize handler calls without changing the implementation
-    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "onResize");
 
     mount(
       <MonacoEditor
@@ -405,7 +391,7 @@ describe("MonacoEditor resize handler when window size changes", () => {
     );
 
     (window as any).innerWidth = 500;
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
 
     expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
     expect(mockEditorLayout).toHaveBeenCalledTimes(0);
@@ -423,12 +409,12 @@ describe("MonacoEditor resize handler when window size changes", () => {
   it("Resize handler should trigger an editor.layout call when skipLayoutWhenHidden=true and parent container is NOT hidden", async () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor};
+    const newMockEditor = { ...mockEditor };
     newMockEditor.layout = mockEditorLayout;
     mockCreateEditor.mockReturnValue(newMockEditor);
 
     // We spy on the resize handler calls without changing the implementation
-    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "onResize");
 
     const wrapper = mount(
       <MonacoEditor
@@ -442,10 +428,10 @@ describe("MonacoEditor resize handler when window size changes", () => {
     );
 
     const componentInstance = wrapper.instance() as MonacoEditor;
-    componentInstance.isContainerHidden = jest.fn(()=>false);
+    componentInstance.isContainerHidden = jest.fn(() => false);
 
     (window as any).innerWidth = 500;
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
 
     expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
     expect(mockEditorLayout).toHaveBeenCalledTimes(1);
@@ -457,12 +443,12 @@ describe("MonacoEditor resize handler when window size changes", () => {
   it("Resize handler should NOT trigger an editor.layout call when skipLayoutWhenHidden=true and parent container is hidden", async () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
-    const newMockEditor = {...mockEditor};
+    const newMockEditor = { ...mockEditor };
     newMockEditor.layout = mockEditorLayout;
     mockCreateEditor.mockReturnValue(newMockEditor);
 
     // We spy on the resize handler calls without changing the implementation
-    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "resize");;
+    const resizeHandlerSpy = jest.spyOn(MonacoEditor.prototype, "onResize");
 
     const wrapper = mount(
       <MonacoEditor
@@ -476,10 +462,10 @@ describe("MonacoEditor resize handler when window size changes", () => {
     );
 
     const componentInstance = wrapper.instance() as MonacoEditor;
-    componentInstance.isContainerHidden = jest.fn(()=>true);
+    componentInstance.isContainerHidden = jest.fn(() => true);
 
     (window as any).innerWidth = 500;
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
 
     expect(resizeHandlerSpy).toHaveBeenCalledTimes(1);
     expect(mockEditorLayout).toHaveBeenCalledTimes(0);

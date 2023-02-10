@@ -6,7 +6,7 @@
  * Interface for resizable components.
  */
 export interface IResizable {
-  resize(): void;
+  onResize(): void;
 }
 
 /**
@@ -21,7 +21,7 @@ const resizeObserver = new ResizeObserver((entries) => {
   for (const entry of entries) {
     if (monitoredResizables.has(entry.target)) {
       const editor = monitoredResizables.get(entry.target);
-      editor?.resize();
+      editor?.onResize();
     }
   }
 });

@@ -121,7 +121,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     this.onBlur = this.onBlur.bind(this);
     this.onDidChangeModelContent = this.onDidChangeModelContent.bind(this);
     this.onFocus = this.onFocus.bind(this);
-    this.resize = this.resize.bind(this);
+    this.onResize = this.onResize.bind(this);
     this.hideAllOtherParameterWidgets = this.hideAllOtherParameterWidgets.bind(this);
     this.handleCoordsOutsideWidgetActiveRegion = debounce(
       this.handleCoordsOutsideWidgetActiveRegion.bind(this),
@@ -136,10 +136,18 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   }
 
   isContainerHidden() {
-    return !this.editorContainerRef.current?.offsetHeight;
+    const container = this.editorContainerRef.current;
+    return !container?.offsetParent || !container?.offsetHeight;
   }
 
-  updateEditorLayout(layout?: monaco.editor.IDimension) {
+  /**
+   * call into monaco editor to layout the editor
+   */
+  layout(layout?: monaco.editor.IDimension) {
+    this.editor?.layout(layout);
+  }
+
+  requestLayout(layout?: monaco.editor.IDimension) {
     if (!this.editor) {
       return;
     }
@@ -151,9 +159,9 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
 
     if (this.props.batchLayoutChanges === true) {
-      scheduleEditorForLayout(this.editor, layout);
+      scheduleEditorForLayout(this, layout);
     } else {
-      this.editor.layout(layout);
+      this.layout(layout);
     }
   }
 
@@ -191,7 +199,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
        * This causes a forced layout by the browser
        * We pass in the expected width and height to as an optimization to avoid the forced layout
        */
-      this.updateEditorLayout({ width: this.editor.getLayoutInfo().width, height });
+      this.requestLayout({ width: this.editor.getLayoutInfo().width, height });
       this.contentHeight = height;
     }
   }
@@ -336,12 +344,12 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
   /**
    * Tells editor to check the surrounding container size and resize itself appropriately
    */
-  resize() {
+  onResize() {
     if (this.props.shouldUpdateLayoutWhenNotFocused) {
-      this.updateEditorLayout();
+      this.requestLayout();
     } else if (this.editor && this.props.editorFocused) {
       // We call layout only for the focussed editor and resize other instances using CSS
-      this.updateEditorLayout();
+      this.requestLayout();
     }
   }
 
@@ -437,7 +445,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
 
     // Tells the editor pane to check if its container has changed size and fill appropriately
-    this.updateEditorLayout();
+    this.requestLayout();
   }
 
   componentWillUnmount() {
@@ -454,6 +462,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
         }
 
         this.editor.dispose();
+        this.editor = undefined;
       } catch (err) {
         // tslint:disable-next-line
         console.error(`Error occurs in disposing editor: ${JSON.stringify(err)}`);
