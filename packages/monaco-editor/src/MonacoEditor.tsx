@@ -147,6 +147,13 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     this.editor?.layout(layout);
   }
 
+  /**
+   * Implementation for IEditor from layoutSchedule
+   */
+  shouldLayout() {
+    return this.props.skipLayoutWhenHidden ? !this.isContainerHidden() : true;
+  }
+
   requestLayout(layout?: monaco.editor.IDimension) {
     if (!this.editor) {
       return;

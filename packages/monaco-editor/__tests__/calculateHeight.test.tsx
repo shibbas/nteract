@@ -1,5 +1,9 @@
 import * as React from "react";
 import * as Monaco from "monaco-editor/esm/vs/editor/editor.api";
+
+import ResizeObserver from "../src/polyfill/windowResizeEventObserver";
+global.ResizeObserver = ResizeObserver;
+
 import { default as MonacoEditor } from "../src/MonacoEditor";
 import { mount } from "enzyme";
 
@@ -124,18 +128,18 @@ describe("MonacoEditor process calculateHeight correctly", () => {
 
     mockCreateEditor.mockReturnValue(newMockEditor);
     const editorWrapper = mount(
-        <MonacoEditor
-          {...monacoEditorCommonProps}
-          channels={undefined}
-          onChange={jest.fn()}
-          onFocusChange={jest.fn()}
-          editorFocused={true}
-          skipLayoutWhenHidden={true}
-        />
+      <MonacoEditor
+        {...monacoEditorCommonProps}
+        channels={undefined}
+        onChange={jest.fn()}
+        onFocusChange={jest.fn()}
+        editorFocused={true}
+        skipLayoutWhenHidden={true}
+      />
     );
 
     const editorInstance = editorWrapper.instance() as MonacoEditor;
-    editorInstance.isContainerHidden = jest.fn(()=>true);
+    editorInstance.isContainerHidden = jest.fn(() => true);
 
     // set an arbitary height which is different from the current height return by editor.getContentHeight()
     editorInstance.calculateHeight(200);
@@ -154,18 +158,18 @@ describe("MonacoEditor process calculateHeight correctly", () => {
 
     mockCreateEditor.mockReturnValue(newMockEditor);
     const editorWrapper = mount(
-        <MonacoEditor
-          {...monacoEditorCommonProps}
-          channels={undefined}
-          onChange={jest.fn()}
-          onFocusChange={jest.fn()}
-          editorFocused={true}
-          skipLayoutWhenHidden={true}
-        />
+      <MonacoEditor
+        {...monacoEditorCommonProps}
+        channels={undefined}
+        onChange={jest.fn()}
+        onFocusChange={jest.fn()}
+        editorFocused={true}
+        skipLayoutWhenHidden={true}
+      />
     );
 
     const editorInstance = editorWrapper.instance() as MonacoEditor;
-    editorInstance.isContainerHidden = jest.fn(()=>false);
+    editorInstance.isContainerHidden = jest.fn(() => false);
 
     // set an arbitary height which is different from the current height return by editor.getContentHeight()
     editorInstance.calculateHeight(200);

@@ -1,5 +1,9 @@
 import * as React from "react";
 import * as Monaco from "monaco-editor/esm/vs/editor/editor.api";
+
+import ResizeObserver from "../src/polyfill/windowResizeEventObserver";
+global.ResizeObserver = ResizeObserver;
+
 import { default as MonacoEditor } from "../src/MonacoEditor";
 import { mount } from "enzyme";
 

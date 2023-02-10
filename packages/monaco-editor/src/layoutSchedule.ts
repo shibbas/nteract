@@ -2,7 +2,7 @@ import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 
 export interface IEditor {
   layout(dimension?: monaco.editor.IDimension): void;
-  isContainerHidden(): boolean;
+  shouldLayout(): boolean;
 }
 
 const editorsInSchedule: Map<IEditor, monaco.editor.IDimension | undefined> = new Map();
@@ -12,7 +12,7 @@ function executeLayout() {
   layoutTimer = null;
   const editorsToLayout = [];
   for (const [editor, layout] of editorsInSchedule) {
-    if (!editor.isContainerHidden()) {
+    if (editor.shouldLayout()) {
       editorsToLayout.push([editor, layout]);
     }
   }
