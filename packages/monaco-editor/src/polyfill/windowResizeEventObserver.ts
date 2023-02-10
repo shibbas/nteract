@@ -4,7 +4,8 @@
 class ResizeObserver {
   elements: Set<Element> = new Set();
   constructor(private callback: ResizeObserverCallback) {
-    window.addEventListener("resize", this.onWindowResize.bind(this));
+    this.onWindowResize = this.onWindowResize.bind(this);
+    window.addEventListener("resize", this.onWindowResize);
   }
 
   onWindowResize() {
@@ -30,7 +31,9 @@ class ResizeObserver {
     this.elements.delete(element);
   }
 
-  disconnect() {}
+  disconnect() {
+    window.removeEventListener("resize", this.onWindowResize);
+  }
 }
 
 export default ResizeObserver;
