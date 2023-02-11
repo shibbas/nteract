@@ -29,7 +29,7 @@ function executeLayout() {
  * These updates often happen together with other editors, such as when the window resizes.
  * In order to avoid layout thrashing, we batch these layout calls together and perform them all at once in a RAF timeout.
  */
-export function scheduleEditorForLayout(editor: IEditor, layout: monaco.editor.IDimension | undefined) {
+export function scheduleEditorForLayout(editor: IEditor, layout?: monaco.editor.IDimension) {
   editorsInSchedule.set(editor, layout);
   if (!layoutTimer) {
     // Using RAF here ensures that the layout will happen on the next frame.
