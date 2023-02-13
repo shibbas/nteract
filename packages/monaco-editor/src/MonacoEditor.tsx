@@ -135,6 +135,11 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
     }
   }
 
+  getContainerDimension() {
+    const container = this.editorContainerRef.current;
+    return container ? { width: container.offsetWidth, height: container.offsetHeight } : undefined;
+  }
+
   isContainerHidden() {
     const container = this.editorContainerRef.current;
     return !container?.offsetParent || !container?.offsetHeight;

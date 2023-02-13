@@ -14,7 +14,7 @@ export interface IResizable {
 /**
  * ResizeObserver that monitors the size of the element and calls the resizable component.
  */
-const monitoredResizables = new Map<Element, IResizable>();
+const monitoredResizables = new WeakMap<Element, IResizable>();
 
 /**
  * ResizeObserver that monitors the size of the element and calls the resizable component.

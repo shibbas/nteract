@@ -3,6 +3,7 @@ import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 export interface IEditor {
   layout(dimension?: monaco.editor.IDimension): void;
   shouldLayout(): boolean;
+  getContainerDimension: () => monaco.editor.IDimension;
 }
 
 const editorsInSchedule: Map<IEditor, monaco.editor.IDimension | undefined> = new Map();
@@ -13,12 +14,16 @@ function executeLayout() {
   const editorsToLayout = [];
   for (const [editor, layout] of editorsInSchedule) {
     if (editor.shouldLayout()) {
-      editorsToLayout.push([editor, layout]);
+      if (layout) {
+        editorsToLayout.push([editor, layout]);
+      } else {
+        editorsToLayout.push([editor, editor.getContainerDimension()]);
+      }
     }
   }
 
   for (const [editor, layout] of editorsToLayout) {
-    (editor as IEditor).layout(layout as monaco.editor.IDimension | undefined);
+    (editor as IEditor).layout(layout as monaco.editor.IDimension);
   }
 
   editorsInSchedule.clear();
