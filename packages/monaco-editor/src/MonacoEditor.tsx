@@ -135,13 +135,14 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
     }
   }
 
-  getContainerDimension() {
-    const container = this.editorContainerRef.current;
-    if (!container || !container.offsetHeight || !container.offsetWidth) {
+  getLayoutDimension() {
+    const container = this.editor?.getContainerDomNode();
+    if (!container) {
       return undefined;
     }
 
-    return { width: container.offsetWidth, height: container.offsetHeight };
+    // use clientHeight and clientWidth to align with what monaco editor does for getting the dimension when it is undefined.
+    return { width: container.clientWidth, height: container.clientHeight };
   }
 
   isContainerHidden() {

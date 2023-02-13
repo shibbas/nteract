@@ -3,7 +3,7 @@ import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 export interface IEditor {
   layout(dimension?: monaco.editor.IDimension): void;
   shouldLayout(): boolean;
-  getContainerDimension: () => monaco.editor.IDimension | undefined;
+  getLayoutDimension: () => monaco.editor.IDimension | undefined;
 }
 
 const editorsInSchedule: Map<IEditor, monaco.editor.IDimension | undefined> = new Map();
@@ -18,7 +18,7 @@ function executeLayout() {
     if (editor.shouldLayout()) {
       let dim = scheduledDimention;
       if (!dim) {
-        dim = editor.getContainerDimension();
+        dim = editor.getLayoutDimension();
       }
 
       // skip layout if dimension is not available

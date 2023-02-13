@@ -67,7 +67,7 @@ Monaco.editor.create = mockCreateEditor;
 Monaco.editor.createModel = jest.fn().mockReturnValue(mockEditorModel);
 MonacoEditor.prototype.calculateHeight = jest.fn();
 MonacoEditor.prototype.registerDefaultCompletionProvider = jest.fn();
-MonacoEditor.prototype.getContainerDimension = jest.fn(() => ({ width: 300, height: 400 }));
+MonacoEditor.prototype.getLayoutDimension = jest.fn(() => ({ width: 300, height: 400 }));
 
 describe("MonacoEditor default completion provider", () => {
   beforeAll(() => {
