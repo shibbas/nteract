@@ -3,7 +3,7 @@ import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 export interface IEditor {
   layout(dimension?: monaco.editor.IDimension): void;
   shouldLayout(): boolean;
-  getContainerDimension: () => monaco.editor.IDimension;
+  getContainerDimension: () => monaco.editor.IDimension | undefined;
 }
 
 const editorsInSchedule: Map<IEditor, monaco.editor.IDimension | undefined> = new Map();
@@ -11,19 +11,26 @@ let layoutTimer: ReturnType<typeof requestAnimationFrame> | null = null;
 
 function executeLayout() {
   layoutTimer = null;
-  const editorsToLayout = [];
-  for (const [editor, layout] of editorsInSchedule) {
+  const editorsToLayout: Array<[IEditor, monaco.editor.IDimension]> = [];
+
+  // do the first loop to collect editors and their dimensions for layouting, so we can read the DOM once to avoid layout thrashing
+  for (const [editor, scheduledDimention] of editorsInSchedule) {
     if (editor.shouldLayout()) {
-      if (layout) {
-        editorsToLayout.push([editor, layout]);
-      } else {
-        editorsToLayout.push([editor, editor.getContainerDimension()]);
+      let dim = scheduledDimention;
+      if (!dim) {
+        dim = editor.getContainerDimension();
+      }
+
+      // skip layout if dimension is not available
+      if (dim) {
+        editorsToLayout.push([editor, dim]);
       }
     }
   }
 
-  for (const [editor, layout] of editorsToLayout) {
-    (editor as IEditor).layout(layout as monaco.editor.IDimension);
+  // the second loop to execute the layouts
+  for (const [editor, dim] of editorsToLayout) {
+    editor.layout(dim);
   }
 
   editorsInSchedule.clear();

@@ -6,7 +6,7 @@ import { completionProvider } from "./completions/completionItemProvider";
 import { ContentRef } from "@nteract/core";
 import { DocumentUri } from "./documentUri";
 import debounce from "lodash.debounce";
-import { scheduleEditorForLayout } from "./layoutSchedule";
+import { scheduleEditorForLayout, IEditor } from "./layoutSchedule";
 import * as resizeObserver from "./resizeObserver";
 
 export type IModelContentChangedEvent = monaco.editor.IModelContentChangedEvent;
@@ -107,7 +107,7 @@ export type IMonacoProps = IMonacoComponentProps & IMonacoConfiguration;
 /**
  * Creates a MonacoEditor instance
  */
-export default class MonacoEditor extends React.Component<IMonacoProps> {
+export default class MonacoEditor extends React.Component<IMonacoProps> implements IEditor {
   editor?: monaco.editor.IStandaloneCodeEditor;
   editorContainerRef = React.createRef<HTMLDivElement>();
   contentHeight?: number;
@@ -137,7 +137,11 @@ export default class MonacoEditor extends React.Component<IMonacoProps> {
 
   getContainerDimension() {
     const container = this.editorContainerRef.current;
-    return container ? { width: container.offsetWidth, height: container.offsetHeight } : undefined;
+    if (!container || !container.offsetHeight || !container.offsetWidth) {
+      return undefined;
+    }
+
+    return { width: container.offsetWidth, height: container.offsetHeight };
   }
 
   isContainerHidden() {
