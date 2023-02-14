@@ -201,7 +201,7 @@ export default class MonacoEditor
     return this.props.skipLayoutWhenHidden ? !this.isContainerHidden() : true;
   }
 
-  requestLayout(layout?: monaco.editor.IDimension) {
+  requestLayout(layout?: monaco.editor.IDimension): void {
     if (!this.editor) {
       return;
     }
@@ -214,7 +214,7 @@ export default class MonacoEditor
 
     // when skipLayoutWhenHidden is true and the editor's parent or ancestor container is hidden,
     // we will not layout the editor.
-    if (this.props.skipLayoutWhenHidden && this.isContainerHidden()) {
+    if (!this.shouldLayout()) {
       return;
     }
 
