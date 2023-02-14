@@ -61,7 +61,7 @@ describe("MonacoEditor process calculateHeight correctly", () => {
     jest.clearAllMocks();
   });
 
-  it("maxHeight is honored when content height exceeds it", () => {
+  it("maxContentHeight is honored when content height exceeds it", () => {
     // Create a new editor instance with the mock layout
     const mockEditorLayout = jest.fn();
     const width = 500;
@@ -142,7 +142,7 @@ describe("MonacoEditor process calculateHeight correctly", () => {
     editorInstance.isContainerHidden = jest.fn(() => true);
 
     // set an arbitary height which is different from the current height return by editor.getContentHeight()
-    editorInstance.calculateHeight(200);
+    editorInstance.updateContainerHeight(200);
     expect(mockEditorLayout).toHaveBeenCalledTimes(0);
   });
 
@@ -172,7 +172,7 @@ describe("MonacoEditor process calculateHeight correctly", () => {
     editorInstance.isContainerHidden = jest.fn(() => false);
 
     // set an arbitary height which is different from the current height return by editor.getContentHeight()
-    editorInstance.calculateHeight(200);
+    editorInstance.updateContainerHeight(200);
     expect(mockEditorLayout).toHaveBeenCalledTimes(1);
   });
 });

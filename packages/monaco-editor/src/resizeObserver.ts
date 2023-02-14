@@ -40,15 +40,16 @@ function getResizeObserverSingleton() {
 /**
  * Observe the element for resize events.
  */
-export function observe(resizable: IResizable, element: HTMLDivElement) {
+export function observe(resizable: IResizable, element: HTMLDivElement): () => void {
   monitoredResizables.set(element, resizable);
   getResizeObserverSingleton().observe(element);
+  return () => unobserve(element);
 }
 
 /**
  * Unobserve the element for resize events.
  */
-export function unobserve(element: HTMLDivElement) {
+export function unobserve(element: HTMLDivElement): void {
   getResizeObserverSingleton().unobserve(element);
   monitoredResizables.delete(element);
 }

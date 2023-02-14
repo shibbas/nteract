@@ -8,6 +8,7 @@ import { DocumentUri } from "./documentUri";
 import debounce from "lodash.debounce";
 import { scheduleEditorForLayout, IEditor } from "./layoutSchedule";
 import * as resizeObserver from "./resizeObserver";
+import * as intersectionObserver from "./intersectionObserver";
 
 export type IModelContentChangedEvent = monaco.editor.IModelContentChangedEvent;
 
@@ -78,6 +79,13 @@ export interface IMonacoConfiguration {
    * This is better used together with batchLayoutChanges set to true so all editors layouts changes can be batched for better perf
    */
   shouldUpdateLayoutWhenNotFocused?: boolean;
+
+  /**
+   * whether we should call editor.layout() when the container is not in the viewport
+   * default is false
+   */
+  skipLayoutWhenNotInViewport?: boolean;
+
   /**
    * whether we should call editor.layout() when the container or its parent is hidden by "display:none" or the height is set to 0
    * default is false
@@ -87,6 +95,12 @@ export interface IMonacoConfiguration {
   autoFitContentHeight?: boolean;
   /** set a max content height in number of pixels, this only works when autoFitContentHeight is true*/
   maxContentHeight?: number;
+
+  /**
+   * Set the initial dimensions of the editor layout and the container
+   */
+  initialDimension?: monaco.editor.IDimension;
+
   /** set height of editor to fit the specified number of lines in display */
   numberOfLines?: number;
   indentSize?: number;
@@ -104,20 +118,43 @@ export interface IMonacoConfiguration {
  */
 export type IMonacoProps = IMonacoComponentProps & IMonacoConfiguration;
 
+const updateHeightSchedule = new Map<MonacoEditor, number>();
+let containerUpdateTask: number | null = null;
+function executeUpdateContainerHeight() {
+  containerUpdateTask = null;
+  for (const [editor, height] of updateHeightSchedule) {
+    editor.updateContainerHeight(height);
+  }
+
+  updateHeightSchedule.clear();
+}
+
+function scheduleUpdateContainerHeight(editor: MonacoEditor, height: number) {
+  updateHeightSchedule.set(editor, height);
+  if (!containerUpdateTask) {
+    containerUpdateTask = requestAnimationFrame(executeUpdateContainerHeight);
+  }
+}
+
 /**
  * Creates a MonacoEditor instance
  */
-export default class MonacoEditor extends React.Component<IMonacoProps> implements IEditor {
+export default class MonacoEditor
+  extends React.Component<IMonacoProps>
+  implements IEditor, intersectionObserver.IIntersectable {
   editor?: monaco.editor.IStandaloneCodeEditor;
   editorContainerRef = React.createRef<HTMLDivElement>();
-  contentHeight?: number;
+  containerHeight?: number;
   private cursorPositionListener?: monaco.IDisposable;
 
   private mouseMoveListener?: monaco.IDisposable;
+  private intersectObservation?: () => void;
+  private isInViewport = false;
+  private deferredLayoutRequest = false;
+  private deferredLayoutDimension?: monaco.editor.IDimension;
 
   constructor(props: IMonacoProps) {
     super(props);
-    this.calculateHeight = this.calculateHeight.bind(this);
     this.onBlur = this.onBlur.bind(this);
     this.onDidChangeModelContent = this.onDidChangeModelContent.bind(this);
     this.onFocus = this.onFocus.bind(this);
@@ -129,13 +166,13 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
     );
   }
 
-  onDidChangeModelContent(e: monaco.editor.IModelContentChangedEvent) {
+  onDidChangeModelContent(e: monaco.editor.IModelContentChangedEvent): void {
     if (this.editor && this.props.onChange) {
       this.props.onChange(this.editor.getValue(), e);
     }
   }
 
-  getLayoutDimension() {
+  getLayoutDimension(): monaco.editor.IDimension | undefined {
     const container = this.editor?.getContainerDomNode();
     if (!container) {
       return undefined;
@@ -145,7 +182,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
     return { width: container.clientWidth, height: container.clientHeight };
   }
 
-  isContainerHidden() {
+  isContainerHidden(): boolean {
     const container = this.editorContainerRef.current;
     return !container?.offsetParent || !container?.offsetHeight;
   }
@@ -153,19 +190,25 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
   /**
    * call into monaco editor to layout the editor
    */
-  layout(layout?: monaco.editor.IDimension) {
+  layout(layout?: monaco.editor.IDimension): void {
     this.editor?.layout(layout);
   }
 
   /**
    * Implementation for IEditor from layoutSchedule
    */
-  shouldLayout() {
+  shouldLayout(): boolean {
     return this.props.skipLayoutWhenHidden ? !this.isContainerHidden() : true;
   }
 
   requestLayout(layout?: monaco.editor.IDimension) {
     if (!this.editor) {
+      return;
+    }
+
+    if (!this.isInViewport) {
+      this.deferredLayoutDimension = layout;
+      this.deferredLayoutRequest = true;
       return;
     }
 
@@ -185,11 +228,10 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
   /**
    * Adjust the height of editor container
    *
-   * @param height Expected height of the editor container
    * We check the editor's content height and set the container height to match it
    *
    */
-  calculateHeight(height?: number) {
+  calculateHeight(): void {
     // Make sure we have an editor
     if (!this.editor) {
       return;
@@ -200,29 +242,71 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
       return;
     }
 
-    if (typeof height === "undefined") {
-      // Retrieve content height directly from the editor if no height provided as param
-      height = this.editor.getContentHeight();
+    // Retrieve content height directly from the editor if no height provided as param
+    const height = this.editor.getContentHeight();
+    this.updateContainerHeight(height);
+  }
+
+  /**
+   * Adjust the height of editor container
+   *
+   * @param height Expected height of the editor container
+   * @returns true if the container height was updated
+   *
+   */
+  updateContainerHeight(height: number): boolean {
+    // Make sure we have an editor
+    if (!this.editor) {
+      return false;
+    }
+
+    // Make sure we have an editor
+    const shouldProceed = this.props.autoFitContentHeight ?? true;
+    if (!shouldProceed) {
+      return false;
     }
 
     if (this.props.maxContentHeight) {
       height = Math.min(height, this.props.maxContentHeight);
     }
 
-    if (this.editorContainerRef && this.editorContainerRef.current && this.contentHeight !== height) {
-      this.editorContainerRef.current.style.height = height + "px";
+    const containerElement = this.editorContainerRef.current;
+    if (containerElement && this.containerHeight !== height) {
+      this.containerHeight = height;
+      containerElement.style.height = height + "px";
+
       /**
        * With no params, the layout method queries the DOM to get the parent container dimensions
        * This causes a forced layout by the browser
        * We pass in the expected width and height to as an optimization to avoid the forced layout
        */
       this.requestLayout({ width: this.editor.getLayoutInfo().width, height });
-      this.contentHeight = height;
+      return true;
+    }
+
+    return false;
+  }
+
+  onIntersecting(isIntersecting: boolean): void {
+    if (this.isInViewport !== isIntersecting) {
+      this.isInViewport = isIntersecting;
+
+      if (this.isInViewport && this.deferredLayoutRequest) {
+        this.deferredLayoutRequest = false;
+        this.requestLayout(this.deferredLayoutDimension);
+      }
     }
   }
 
   componentDidMount() {
     if (this.editorContainerRef && this.editorContainerRef.current) {
+      if (this.props.skipLayoutWhenNotInViewport) {
+        this.intersectObservation = intersectionObserver.observe(this, this.editorContainerRef.current);
+      } else {
+        // if we don't use viewport intersection, we assume the editor is always in viewport
+        this.onIntersecting(true);
+      }
+
       // Register Jupyter completion provider if needed
       this.registerCompletionProvider();
 
@@ -288,6 +372,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
         },
         theme: this.props.theme,
         value: this.props.value,
+        dimension: this.props.initialDimension,
         // Apply custom settings from configuration
         ...this.props.options,
         // this is required, otherwise the editor will continue to change its size on layout if set to true in options overrides
@@ -336,7 +421,7 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
       // Resize Editor container on content size change
       this.editor.onDidContentSizeChange((info) => {
         if (info.contentHeightChanged) {
-          this.calculateHeight(info.contentHeight);
+          scheduleUpdateContainerHeight(this, info.contentHeight);
         }
       });
       this.editor.onDidChangeModelContent(this.onDidChangeModelContent);
@@ -473,6 +558,8 @@ export default class MonacoEditor extends React.Component<IMonacoProps> implemen
         if (this.editorContainerRef.current) {
           resizeObserver.unobserve(this.editorContainerRef.current);
         }
+
+        this.intersectObservation?.();
 
         if (model) {
           model.dispose();
