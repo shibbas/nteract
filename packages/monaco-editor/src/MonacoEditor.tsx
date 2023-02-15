@@ -118,24 +118,6 @@ export interface IMonacoConfiguration {
  */
 export type IMonacoProps = IMonacoComponentProps & IMonacoConfiguration;
 
-const updateHeightSchedule = new Map<MonacoEditor, number>();
-let containerUpdateTask: number | null = null;
-function executeUpdateContainerHeight() {
-  containerUpdateTask = null;
-  for (const [editor, height] of updateHeightSchedule) {
-    editor.updateContainerHeight(height);
-  }
-
-  updateHeightSchedule.clear();
-}
-
-function scheduleUpdateContainerHeight(editor: MonacoEditor, height: number) {
-  updateHeightSchedule.set(editor, height);
-  if (!containerUpdateTask) {
-    containerUpdateTask = requestAnimationFrame(executeUpdateContainerHeight);
-  }
-}
-
 /**
  * Creates a MonacoEditor instance
  */
@@ -144,12 +126,11 @@ export default class MonacoEditor
   implements IEditor, intersectionObserver.IIntersectable {
   editor?: monaco.editor.IStandaloneCodeEditor;
   editorContainerRef = React.createRef<HTMLDivElement>();
-  containerHeight?: number;
   private cursorPositionListener?: monaco.IDisposable;
 
   private mouseMoveListener?: monaco.IDisposable;
   private intersectObservation?: () => void;
-  private isInViewport = false;
+  private isInViewport = true;
   private deferredLayoutRequest = false;
   private deferredLayoutDimension?: monaco.editor.IDimension;
 
@@ -164,6 +145,11 @@ export default class MonacoEditor
       this.handleCoordsOutsideWidgetActiveRegion.bind(this),
       50 // Make sure we rate limit the calls made by mouse movement
     );
+
+    // if skipLayoutWhenNotInViewport is true, we set isInViewport to false and wait for the intersection observer to set it to true
+    if (props.skipLayoutWhenNotInViewport === true) {
+      this.isInViewport = false;
+    }
   }
 
   onDidChangeModelContent(e: monaco.editor.IModelContentChangedEvent): void {
@@ -172,14 +158,40 @@ export default class MonacoEditor
     }
   }
 
-  getLayoutDimension(): monaco.editor.IDimension | undefined {
+  readEditorDomSize(): monaco.editor.IDimension | undefined {
     const container = this.editor?.getContainerDomNode();
     if (!container) {
       return undefined;
     }
 
-    // use clientHeight and clientWidth to align with what monaco editor does for getting the dimension when it is undefined.
-    return { width: container.clientWidth, height: container.clientHeight };
+    // use clientHeight and clientWidth from the editor.
+    return {
+      width: container.clientWidth,
+      height: container.clientHeight
+    };
+  }
+
+  getLayoutDimension(): monaco.editor.IDimension | undefined {
+    const dim = this.readEditorDomSize();
+
+    // if the container is zero sized, return undefined
+    if (!dim || dim.width === 0 || dim.height === 0) {
+      return undefined;
+    }
+
+    if (this.props.autoFitContentHeight ?? true) {
+      // auto fit the height to the content
+      const contentHeight = this.editor?.getContentHeight();
+      if (contentHeight) {
+        dim.height = contentHeight;
+      }
+    }
+
+    if (this.props.maxContentHeight) {
+      dim.height = Math.min(dim.height, this.props.maxContentHeight);
+    }
+
+    return dim;
   }
 
   isContainerHidden(): boolean {
@@ -188,14 +200,18 @@ export default class MonacoEditor
   }
 
   /**
-   * call into monaco editor to layout the editor
+   * write the layout to the DOM
    */
-  layout(layout?: monaco.editor.IDimension): void {
-    this.editor?.layout(layout);
+  layout(layout: monaco.editor.IDimension): void {
+    if (!this.editor) {
+      return;
+    }
+
+    this.editor.layout(layout);
   }
 
   /**
-   * Implementation for IEditor from layoutSchedule
+   * Implementation for IEditor from layoutSchedule, could cause a DOM read operation
    */
   shouldLayout(): boolean {
     return this.props.skipLayoutWhenHidden ? !this.isContainerHidden() : true;
@@ -221,70 +237,11 @@ export default class MonacoEditor
     if (this.props.batchLayoutChanges === true) {
       scheduleEditorForLayout(this, layout);
     } else {
-      this.layout(layout);
+      const layout = this.getLayoutDimension();
+      if (layout) {
+        this.layout(layout);
+      }
     }
-  }
-
-  /**
-   * Adjust the height of editor container
-   *
-   * We check the editor's content height and set the container height to match it
-   *
-   */
-  calculateHeight(): void {
-    // Make sure we have an editor
-    if (!this.editor) {
-      return;
-    }
-
-    const shouldProceed = this.props.autoFitContentHeight ?? true;
-    if (!shouldProceed) {
-      return;
-    }
-
-    // Retrieve content height directly from the editor if no height provided as param
-    const height = this.editor.getContentHeight();
-    this.updateContainerHeight(height);
-  }
-
-  /**
-   * Adjust the height of editor container
-   *
-   * @param height Expected height of the editor container
-   * @returns true if the container height was updated
-   *
-   */
-  updateContainerHeight(height: number): boolean {
-    // Make sure we have an editor
-    if (!this.editor) {
-      return false;
-    }
-
-    // Make sure we have an editor
-    const shouldProceed = this.props.autoFitContentHeight ?? true;
-    if (!shouldProceed) {
-      return false;
-    }
-
-    if (this.props.maxContentHeight) {
-      height = Math.min(height, this.props.maxContentHeight);
-    }
-
-    const containerElement = this.editorContainerRef.current;
-    if (containerElement && this.containerHeight !== height) {
-      this.containerHeight = height;
-      containerElement.style.height = height + "px";
-
-      /**
-       * With no params, the layout method queries the DOM to get the parent container dimensions
-       * This causes a forced layout by the browser
-       * We pass in the expected width and height to as an optimization to avoid the forced layout
-       */
-      this.requestLayout({ width: this.editor.getLayoutInfo().width, height });
-      return true;
-    }
-
-    return false;
   }
 
   onIntersecting(isIntersecting: boolean): void {
@@ -302,9 +259,6 @@ export default class MonacoEditor
     if (this.editorContainerRef && this.editorContainerRef.current) {
       if (this.props.skipLayoutWhenNotInViewport) {
         this.intersectObservation = intersectionObserver.observe(this, this.editorContainerRef.current);
-      } else {
-        // if we don't use viewport intersection, we assume the editor is always in viewport
-        this.onIntersecting(true);
       }
 
       // Register Jupyter completion provider if needed
@@ -404,9 +358,6 @@ export default class MonacoEditor
         this.registerCursorListener();
       }
 
-      // Adds listener under the resize window event which calls the resize method
-      resizeObserver.observe(this, this.editorContainerRef.current);
-
       // Adds listeners for undo and redo actions emitted from the toolbar
       this.editorContainerRef.current.addEventListener("undo", () => {
         if (this.editor) {
@@ -418,16 +369,21 @@ export default class MonacoEditor
           this.editor.trigger("redo-event", "redo", {});
         }
       });
+
       // Resize Editor container on content size change
       this.editor.onDidContentSizeChange((info) => {
-        if (info.contentHeightChanged) {
-          scheduleUpdateContainerHeight(this, info.contentHeight);
+        if (info.contentHeightChanged && (this.props.autoFitContentHeight ?? true)) {
+          const layout = this.editor?.getLayoutInfo();
+          if (layout) {
+            this.requestLayout({ height: info.contentHeight, width: layout.width });
+          }
         }
       });
+
       this.editor.onDidChangeModelContent(this.onDidChangeModelContent);
       this.editor.onDidFocusEditorWidget(this.onFocus);
       this.editor.onDidBlurEditorWidget(this.onBlur);
-      this.calculateHeight();
+      this.requestLayout(this.props.initialDimension);
 
       // Ensures that the source contents of the editor (value) is consistent with the state of the editor
       this.editor.setValue(this.props.value);
@@ -440,6 +396,9 @@ export default class MonacoEditor
           this.handleCoordsOutsideWidgetActiveRegion(e.event?.pos?.x, e.event?.pos?.y);
         });
       }
+
+      // Adds listener under the resize window event which calls the resize method
+      resizeObserver.observe(this, this.editorContainerRef.current);
     }
   }
 
@@ -540,10 +499,6 @@ export default class MonacoEditor
     // Set focus
     if (editorFocused && !this.editor.hasWidgetFocus()) {
       this.editor.focus();
-    }
-
-    if (this.props.maxContentHeight !== prevProps.maxContentHeight) {
-      this.calculateHeight();
     }
 
     // Tells the editor pane to check if its container has changed size and fill appropriately
