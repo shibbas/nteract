@@ -1,7 +1,7 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 
 export interface IEditor {
-  layout(dimension?: monaco.editor.IDimension): void;
+  layout(dimension: monaco.editor.IDimension): void;
   shouldLayout(): boolean;
   getLayoutDimension: () => monaco.editor.IDimension | undefined;
 }
