@@ -217,13 +217,14 @@ export default class MonacoEditor
     return this.props.skipLayoutWhenHidden ? !this.isContainerHidden() : true;
   }
 
-  requestLayout(layout?: monaco.editor.IDimension): void {
+  requestLayout(dimension?: monaco.editor.IDimension): void {
     if (!this.editor) {
       return;
     }
 
+    // check if the editor is in the viewport first since it doesn't touch the DOM
     if (!this.isInViewport) {
-      this.deferredLayoutDimension = layout;
+      this.deferredLayoutDimension = dimension;
       this.deferredLayoutRequest = true;
       return;
     }
@@ -235,11 +236,14 @@ export default class MonacoEditor
     }
 
     if (this.props.batchLayoutChanges === true) {
-      scheduleEditorForLayout(this, layout);
+      scheduleEditorForLayout(this, dimension);
     } else {
-      const layout = this.getLayoutDimension();
-      if (layout) {
-        this.layout(layout);
+      if (!dimension) {
+        dimension = this.getLayoutDimension();
+      }
+
+      if (dimension) {
+        this.layout(dimension);
       }
     }
   }
