@@ -1,6 +1,6 @@
 {
   "name": "@nteract/monaco-editor",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "description": "A React component for the monaco editor, tailored for nteract",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
