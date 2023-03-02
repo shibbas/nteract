@@ -189,7 +189,7 @@ describe("MonacoEditor lifeCycle methods set up", () => {
 
     // We expect setValue is called twice. First on componentDidMount and second on componentDidUpdate
     // when the props.value has new different value.
-    expect(mockEditor.setValue).toHaveBeenCalledTimes(2);
+    expect(mockEditor.setValue).toHaveBeenCalledTimes(1);
   });
 
   it("Should not call editor setValue when value prop has not changed on componentDidUpdate.", () => {
@@ -198,7 +198,7 @@ describe("MonacoEditor lifeCycle methods set up", () => {
     editorWrapper.setProps({ value: "initial_value" });
 
     // We expect setValue is called once on componentDidMount when the props.value does not have different value.
-    expect(mockEditor.setValue).toHaveBeenCalledTimes(1);
+    expect(mockEditor.setValue).toHaveBeenCalledTimes(0);
   });
 });
 

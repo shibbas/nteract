@@ -145,11 +145,6 @@ export default class MonacoEditor
       this.handleCoordsOutsideWidgetActiveRegion.bind(this),
       50 // Make sure we rate limit the calls made by mouse movement
     );
-
-    // if skipLayoutWhenNotInViewport is true, we set isInViewport to false and wait for the intersection observer to set it to true
-    if (props.skipLayoutWhenNotInViewport === true) {
-      this.isInViewport = false;
-    }
   }
 
   onDidChangeModelContent(e: monaco.editor.IModelContentChangedEvent): void {
@@ -259,11 +254,27 @@ export default class MonacoEditor
     }
   }
 
-  componentDidMount() {
-    if (this.editorContainerRef && this.editorContainerRef.current) {
-      if (this.props.skipLayoutWhenNotInViewport) {
+  updateIntersectRegistration(): void {
+    if (this.props.skipLayoutWhenNotInViewport) {
+      if (this.editorContainerRef.current && this.intersectObservation === undefined) {
+        this.isInViewport = false;
         this.intersectObservation = intersectionObserver.observe(this, this.editorContainerRef.current);
       }
+    } else {
+      if (this.intersectObservation) {
+        this.intersectObservation();
+        this.intersectObservation = undefined;
+      }
+
+      // assume all editors are in viewport if skipLayoutWhenNotInViewport is false
+      this.isInViewport = true;
+    }
+  }
+
+  componentDidMount() {
+    if (this.editorContainerRef && this.editorContainerRef.current) {
+      // Register intersection observer if needed
+      this.updateIntersectRegistration();
 
       // Register Jupyter completion provider if needed
       this.registerCompletionProvider();
@@ -389,8 +400,6 @@ export default class MonacoEditor
       this.editor.onDidBlurEditorWidget(this.onBlur);
       this.requestLayout(this.props.initialDimension);
 
-      // Ensures that the source contents of the editor (value) is consistent with the state of the editor
-      this.editor.setValue(this.props.value);
       if (this.props.cursorPositionHandler) {
         this.props.cursorPositionHandler(this.editor, this.props);
       }
@@ -422,6 +431,8 @@ export default class MonacoEditor
     if (!this.editor) {
       return;
     }
+
+    this.updateIntersectRegistration();
 
     const { value, language, contentRef, id, editorFocused, theme } = this.props;
 
@@ -518,7 +529,10 @@ export default class MonacoEditor
           resizeObserver.unobserve(this.editorContainerRef.current);
         }
 
-        this.intersectObservation?.();
+        if (this.intersectObservation) {
+          this.intersectObservation();
+          this.intersectObservation = undefined;
+        }
 
         if (model) {
           model.dispose();
