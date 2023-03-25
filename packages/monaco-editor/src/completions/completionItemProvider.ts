@@ -134,7 +134,6 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
     }
 
     const isWhitespaceFromCellStart = this.isWhitespaceFromCellStart(model, startPos);
-    const isWhitespaceFromLineStart = this.isWhitespaceFromLineStart(model, startPos);
 
     return completionItems
       .map((completionItem: CompletionMatch, index: number) => {
@@ -158,13 +157,14 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
         } as monaco.languages.CompletionItem;
 
         if (this.isCellMagic(completionText)) {
-          if (!isWhitespaceFromCellStart) {
-            // Cell magic is not valid if there are non-whitespace from cell start to current position.
+          if (!isWhitespaceFromCellStart || startPos.column !== 1) {
+            // Cell magic is not valid if there are non-whitespace from cell start to current position
+            // or if it is not on the first column of a line.
             item = undefined;
           }
         } else if (this.isLineMagic(completionText)) {
-          if (!isWhitespaceFromLineStart) {
-            // Line magic is not valid if there are non-whitespace from line start to current position.
+          if (startPos.column !== 1) {
+            // Line magic is not valid if it is not on the first column of a line.
             item = undefined;
           }
         }        
@@ -179,19 +179,6 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
   private isWhitespaceFromCellStart(model: monaco.editor.ITextModel, startPos: monaco.Position) {
     const beforeText = model.getValueInRange({
       startLineNumber: 1,
-      startColumn: 1,
-      endLineNumber: startPos.lineNumber,
-      endColumn: startPos.column
-    });
-    return this.regexWhitespace.test(beforeText);
-  }
-
-  /**
-   * Whether all characters from line start position up to current start position are whitespace.
-   */
-  private isWhitespaceFromLineStart(model: monaco.editor.ITextModel, startPos: monaco.Position) {
-    const beforeText = model.getValueInRange({
-      startLineNumber: startPos.lineNumber,
       startColumn: 1,
       endLineNumber: startPos.lineNumber,
       endColumn: startPos.column
