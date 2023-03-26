@@ -118,21 +118,7 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
       endColumn: endPos.column
     });
 
-    // If the typed text starts with magics % indicator, we need to track how many of these indicators exist
-    // so that we ensure the insertion text only inserts the delta between what the user typed versus
-    // what is recommended by the completion. Without this, there will be extra % insertions.
-    // Example:
-    // User types %%p then suggestion list will recommend %%python, if we now commit the item then the
-    // final text in the editor becomes %%p%%python instead of %%python. This is why the tracking code
-    // below is needed. This behavior is only specific to the magics % indicators as Monaco does not
-    // handle % characters in their completion list well.
-    let typedPercentCount = 0;
-    if (this.isCellMagic(typedText)) {
-      typedPercentCount = 2;
-    } else if (this.isLineMagic(typedText)) {
-      typedPercentCount = 1;
-    }
-
+    const typedMagicPrefix = this.getMagicPrefix(typedText);
     const isWhitespaceFromCellStart = this.isWhitespaceFromCellStart(model, startPos);
 
     return completionItems
@@ -151,18 +137,19 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
         let item: monaco.languages.CompletionItem | undefined = {
           kind: this.adaptToMonacoCompletionItemKind(completionKind),
           label: completionText,
-          insertText: this.getInsertText(completionText, typedText, typedPercentCount),
+          insertText: this.getInsertText(completionText, typedText, typedMagicPrefix),
           filterText: this.getFilterText(completionText, typedText),
           sortText: this.getSortText(index)
         } as monaco.languages.CompletionItem;
 
-        if (this.isCellMagic(completionText)) {
+        const completionMagicPrefix = this.getMagicPrefix(completionText);
+        if (completionMagicPrefix === "%%") {
           if (!isWhitespaceFromCellStart || startPos.column !== 1) {
             // Cell magic is not valid if there are non-whitespace from cell start to current position
             // or if it is not on the first column of a line.
             item = undefined;
           }
-        } else if (this.isLineMagic(completionText)) {
+        } else if (completionMagicPrefix === "%") {
           if (startPos.column !== 1) {
             // Line magic is not valid if it is not on the first column of a line.
             item = undefined;
@@ -171,6 +158,17 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
         return item;
       })
       .filter((item) => item !== undefined);
+  }
+    
+  /**
+   * Get magic prefix from text.
+   */
+  private getMagicPrefix(text: string) {
+    if(text.startsWith("%")) {
+      return text.startsWith("%%") ? "%%" : "%"; 
+    } else {
+      return undefined;
+    }
   }
 
   /**
@@ -184,20 +182,6 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
       endColumn: startPos.column
     });
     return this.regexWhitespace.test(beforeText);
-  }
-
-  /**
-   * Whether text is a cell magic.
-   */
-  private isCellMagic(text: string) {
-    return text.startsWith("%%");
-  }
-
-  /**
-   * Whether text is a line magic.
-   */
-  private isLineMagic(text: string) {
-    return text.startsWith("%") && !this.isCellMagic(text);
   }
 
   /**
@@ -284,7 +268,7 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
    * Get insertion text handling what to insert for the magics case depending on what
    * has already been typed. Also handles an edge case for file paths with "." in the name.
    */
-  private getInsertText(completionText: string, typedText: string, typedPercentCount: number) {
+  private getInsertText(completionText: string, typedText: string, typedMagicPrefix?: string) {
     // There is an edge case for folders that have "." in the name. The default range for replacements is determined
     // by the "current word" but that doesn't allow "." in the string, so if you autocomplete "some." for a string
     // like "some.folder.name" you end up with "some.some.folder.name".
@@ -303,10 +287,14 @@ class CompletionItemProvider implements monaco.languages.CompletionItemProvider 
       }
     }
 
-    for (let i = 0; i < typedPercentCount; i++) {
-      completionText = completionText.replace("%", "");
-    }
-    return completionText;
+    // If the typed text starts with magics % indicator, we need to inserts the delta between what the user 
+    // typed versus what is recommended by the completion. Without this, there will be extra % insertions.
+    // Example:
+    // User types %%p then suggestion list will recommend %%python, if we now commit the item then the
+    // final text in the editor becomes %%p%%python instead of %%python. This is why the tracking code
+    // below is needed. This behavior is only specific to the magics % indicators as Monaco does not
+    // handle % characters in their completion list well.
+    return typedMagicPrefix ? completionText.replace(typedMagicPrefix, "") : completionText;
   }
 
   /**
