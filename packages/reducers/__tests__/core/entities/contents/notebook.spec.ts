@@ -480,6 +480,19 @@ describe("createCellBelow", () => {
     const cell = state.getIn(["notebook", "cellMap", cellId]);
     expect(cell.get("cell_type")).toBe("markdown");
   });
+  test("creates new cell given cell contents with line endings normalized to LF", () => {
+    const originalState = monocellDocument;
+    const id = originalState.getIn(["notebook", "cellOrder"]).last();
+    const state = reducers(
+      originalState,
+      actions.createCellBelow({ cellType: "markdown", id, cell: emptyMarkdownCell.set("source", "line1\nline2\r\nline3\r\n") })
+    );
+    expect(state.getIn(["notebook", "cellOrder"]).size).toBe(4);
+    const cellId = state.getIn(["notebook", "cellOrder"]).last();
+    const cell = state.getIn(["notebook", "cellMap", cellId]);
+    expect(cell.get("cell_type")).toBe("markdown");
+    expect(cell.get("source")).toEqual("line1\nline2\nline3\n")
+  });
 });
 
 describe("createCellAbove", () => {
@@ -505,6 +518,18 @@ describe("createCellAbove", () => {
     const insertedCellId = state.getIn(["notebook", "cellOrder", 1]);
     expect(state.getIn(["notebook", "cellMap", insertedCellId, "source"])).toEqual("test contents")
   })
+  test("creates new cell given cell contents with line endings normalized to LF", () => {
+    const originalState = initialDocument.set("notebook", fixtureCommutable);
+    const id = originalState.getIn(["notebook", "cellOrder"]).last();
+    const state = reducers(
+      originalState,
+      actions.createCellAbove({ cellType: "markdown", id, cell: emptyMarkdownCell.set("source", "line1\nline2\r\nline3\r\n") })
+    );
+    expect(state.getIn(["notebook", "cellOrder"]).size).toBe(3);
+    expect(state.getIn(["notebook", "cellOrder"]).last()).toBe(id);
+    const insertedCellId = state.getIn(["notebook", "cellOrder", 1]);
+    expect(state.getIn(["notebook", "cellMap", insertedCellId, "source"])).toEqual("line1\nline2\nline3\n")
+  })
 });
 
 describe("newCellAppend", () => {
@@ -526,6 +551,16 @@ describe("newCellAppend", () => {
     const insertedCellId = state.getIn(["notebook", "cellOrder"]).last();
     expect(state.getIn(["notebook", "cellMap", insertedCellId, "source"])).toEqual("test contents")
   });
+  test("appends a new cell at the end given cell contents with line endings normalized to LF", () => {
+    const originalState = initialDocument.set("notebook", fixtureCommutable);
+    const state = reducers(
+      originalState,
+      actions.createCellAppend({ cellType: "markdown", cell: emptyMarkdownCell.set("source", "line1\nline2\r\nline3\r\n") })
+    );
+    expect(state.getIn(["notebook", "cellOrder"]).size).toBe(3);
+    const insertedCellId = state.getIn(["notebook", "cellOrder"]).last();
+    expect(state.getIn(["notebook", "cellMap", insertedCellId, "source"])).toEqual("line1\nline2\nline3\n")
+  });
 });
 
 describe("updateSource", () => {
@@ -539,6 +574,18 @@ describe("updateSource", () => {
     );
     expect(state.getIn(["notebook", "cellMap", id, "source"])).toBe(
       "This is a test"
+    );
+  });
+  test("normalizes the line endings to LF for cell source updates", () => {
+    const originalState = initialDocument.set("notebook", fixtureCommutable);
+
+    const id = originalState.getIn(["notebook", "cellOrder"]).first();
+    const state = reducers(
+      originalState,
+      actions.setInCell({ id, path: ["source"], value: "line1\nline2\r\nline3\r\n" })
+    );
+    expect(state.getIn(["notebook", "cellMap", id, "source"])).toBe(
+      "line1\nline2\nline3\n"
     );
   });
 });

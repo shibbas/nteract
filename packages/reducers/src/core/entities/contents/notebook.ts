@@ -19,6 +19,7 @@ import {
   makeRawCell,
   markCellDeleting,
   markCellNotDeleting,
+  normalizeLineEndings,
   OnDiskDisplayData,
   OnDiskExecuteResult,
   OnDiskOutput,
@@ -590,10 +591,14 @@ function setInCell(
   state: NotebookModel,
   action: actionTypes.SetInCell<string>
 ): RecordOf<DocumentRecordProps> {
-  return state.setIn(
-    ["notebook", "cellMap", action.payload.id].concat(action.payload.path),
-    action.payload.value
-  );
+  const { id, path } = action.payload;
+  let value = action.payload.value;
+
+  if (path.length === 1 && path[0] === "source") {
+    value = normalizeLineEndings(value) ?? "";
+  }
+
+  return state.setIn(["notebook", "cellMap", id].concat(path), value);
 }
 
 function toggleCellOutputVisibility(

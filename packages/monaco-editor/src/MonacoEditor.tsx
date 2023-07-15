@@ -295,6 +295,10 @@ export default class MonacoEditor
         model = monaco.editor.createModel(this.props.value, this.props.language, uri);
       }
 
+      // Set line endings to \n line feed to be consistent across OS platforms. This will auto-normalize the line 
+      // endings of the current value to use \n and any future values produced by the Monaco editor will use \n.
+      model.setEOL(monaco.editor.EndOfLineSequence.LF);
+
       // Update Text model options
       model.updateOptions({
         indentSize: this.props.indentSize,

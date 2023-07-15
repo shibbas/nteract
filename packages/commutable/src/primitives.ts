@@ -116,6 +116,13 @@ export interface MediaBundle {
 }
 
 /**
+ * Normalize line endings to \n line feed to be consistent across OS platforms.
+ */
+export function normalizeLineEndings(text?: string): string | undefined {
+  return text ? text.replace(/\r\n/g, "\n") : text;
+}
+
+/**
  * Turn nbformat multiline strings (arrays of strings for simplifying diffs)
  * into strings
  */

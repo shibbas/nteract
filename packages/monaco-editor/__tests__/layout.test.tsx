@@ -47,6 +47,7 @@ const mockEditor = {
 };
 
 const mockEditorModel = {
+  setEOL: jest.fn(),
   updateOptions: jest.fn()
 };
 const mockCreateEditor = jest.fn().mockReturnValue(mockEditor);

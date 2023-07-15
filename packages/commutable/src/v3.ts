@@ -8,6 +8,7 @@ import {
 import {
   CellId,
   createFrozenMediaBundle,
+  normalizeLineEndings,
   demultiline,
   JSONObject,
   MediaBundle,
@@ -113,7 +114,7 @@ function createImmutableMarkdownCell(
 ): ImmutableMarkdownCell {
   return makeMarkdownCell({
     cell_type: cell.cell_type,
-    source: demultiline(cell.source),
+    source: normalizeLineEndings(demultiline(cell.source)),
     metadata: immutableFromJS(cell.metadata)
   });
 }
@@ -169,7 +170,7 @@ function createImmutableOutput(output: Output): ImmutableOutput {
 function createImmutableCodeCell(cell: CodeCell): ImmutableCodeCell {
   return makeCodeCell({
     cell_type: cell.cell_type,
-    source: demultiline(cell.input),
+    source: normalizeLineEndings(demultiline(cell.input)),
     outputs: ImmutableList(cell.outputs.map(createImmutableOutput)),
     execution_count: cell.prompt_number,
     metadata: immutableFromJS(cell.metadata)
@@ -179,7 +180,7 @@ function createImmutableCodeCell(cell: CodeCell): ImmutableCodeCell {
 function createImmutableRawCell(cell: RawCell): ImmutableRawCell {
   return makeRawCell({
     cell_type: cell.cell_type,
-    source: demultiline(cell.source),
+    source: normalizeLineEndings(demultiline(cell.source)),
     metadata: immutableFromJS(cell.metadata)
   });
 }
@@ -188,16 +189,18 @@ function createImmutableHeadingCell(cell: HeadingCell): ImmutableMarkdownCell {
   // v3 heading cells are just markdown cells in v4+
   return makeMarkdownCell({
     cell_type: "markdown",
-    source: Array.isArray(cell.source)
-      ? demultiline(
-          cell.source.map(line =>
-            Array(cell.level)
-              .join("#")
-              .concat(" ")
-              .concat(line)
+    source: normalizeLineEndings(
+      Array.isArray(cell.source)
+        ? demultiline(
+            cell.source.map(line =>
+              Array(cell.level)
+                .join("#")
+                .concat(" ")
+                .concat(line)
+            )
           )
-        )
-      : cell.source,
+        : cell.source
+    ),
     metadata: immutableFromJS(cell.metadata)
   });
 }

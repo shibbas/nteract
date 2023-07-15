@@ -43,6 +43,7 @@ import {
 import {
   CellId,
   createOnDiskMediaBundle,
+  normalizeLineEndings,
   demultiline,
   ExecutionCount,
   JSONObject,
@@ -138,7 +139,7 @@ function createImmutableAttachments(attachments: MarkdownCell["attachments"]): M
 function createImmutableRawCell(cell: RawCell): ImmutableRawCell {
   return makeRawCell({
     cell_type: cell.cell_type,
-    source: demultiline(cell.source),
+    source: normalizeLineEndings(demultiline(cell.source)),
     metadata: createImmutableMetadata(cell.metadata)
   });
 }
@@ -149,7 +150,7 @@ function createImmutableMarkdownCell(
   return makeMarkdownCell({
     attachments: createImmutableAttachments(cell.attachments),
     cell_type: cell.cell_type,
-    source: demultiline(cell.source),
+    source: normalizeLineEndings(demultiline(cell.source)),
     metadata: createImmutableMetadata(cell.metadata)
   });
 }
@@ -157,7 +158,7 @@ function createImmutableMarkdownCell(
 function createImmutableCodeCell(cell: CodeCell): ImmutableCodeCell {
   return makeCodeCell({
     cell_type: cell.cell_type,
-    source: demultiline(cell.source),
+    source: normalizeLineEndings(demultiline(cell.source)),
     outputs: ImmutableList(cell.outputs.map(createImmutableOutput)),
     execution_count: cell.execution_count,
     metadata: createImmutableMetadata(cell.metadata)

@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 
-import { CellId, createCellId } from "./primitives";
+import { CellId, createCellId, normalizeLineEndings } from "./primitives";
 
 import { ImmutableCell, makeCodeCell, makeMarkdownCell } from "./cells";
 
@@ -64,7 +64,7 @@ export function appendCell(
 ): CellStructure {
   return {
     cellOrder: cellStructure.cellOrder.push(id),
-    cellMap: cellStructure.cellMap.set(id, immutableCell)
+    cellMap: cellStructure.cellMap.set(id, immutableCell.setIn(["source"], normalizeLineEndings(immutableCell.source)))
   };
 }
 
@@ -108,7 +108,7 @@ export function insertCellAt(
 ): ImmutableNotebook {
   return notebook.withMutations(nb =>
     nb
-      .setIn(["cellMap", cellId], cell)
+      .setIn(["cellMap", cellId], cell.setIn(["source"], normalizeLineEndings(cell.source)))
       .set("cellOrder", nb.get("cellOrder").insert(index, cellId))
   );
 }
