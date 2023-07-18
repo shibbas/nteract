@@ -5,6 +5,7 @@ import {
   createFrozenMediaBundle,
   createImmutableOutput,
   deleteCell,
+  demultiline,
   emptyCodeCell,
   emptyMarkdownCell,
   emptyNotebook,
@@ -595,7 +596,7 @@ function setInCell(
   let value = action.payload.value;
 
   if (path.length === 1 && path[0] === "source") {
-    value = normalizeLineEndings(value) ?? "";
+    value = normalizeLineEndings(demultiline(value)) ?? "";
   }
 
   return state.setIn(["notebook", "cellMap", id].concat(path), value);
