@@ -567,7 +567,7 @@ function acceptPayloadMessage(
     if (payload.replace) {
       // this payload is sent in IPython when you use %load
       // and is intended to replace cell source
-      return state.setIn(["notebook", "cellMap", id, "source"], payload.text);
+      return state.setIn(["notebook", "cellMap", id, "source"], normalizeLineEndings(payload.text));
     } else {
       // create the next cell
       // FIXME: This is a weird pattern. We're basically faking a dispatch here
@@ -577,7 +577,7 @@ function acceptPayloadMessage(
         type: actionTypes.CREATE_CELL_BELOW,
         payload: {
           cellType: "code",
-          cell: emptyCodeCell.setIn(["source"], payload.text || ""),
+          cell: makeCodeCell({ source: payload.text || "" }),
           id,
           contentRef: action.payload.contentRef,
         },
