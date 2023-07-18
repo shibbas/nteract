@@ -228,4 +228,29 @@ describe("cell ids", () => {
       expect(out.cells[0].hasOwnProperty("id")).toBe(false);
     });
   });
+
+  describe("fromJS", () => {
+    const getCell = (id: string, source: string) => {
+      return {
+        id,
+        cell_type: "code",
+        execution_count: null,
+        source,
+        outputs: []
+      };
+    };
+
+    it("normalizes line endings to LF for all cell sources", () => {
+      const notebook = getNotebook({ 
+        cells: [
+          getCell("cell1", "line1\nline2\r\nline3\r\n"),
+          getCell("cell2", "line1\r\nline2\r\nline3\n")
+        ]
+      });
+
+      const out = fromJS(notebook);
+      expect(out.cellMap.get("cell1")?.source).toEqual("line1\nline2\nline3\n");
+      expect(out.cellMap.get("cell2")?.source).toEqual("line1\nline2\nline3\n");
+    });
+  });
 });

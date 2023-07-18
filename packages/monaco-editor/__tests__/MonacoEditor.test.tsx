@@ -61,6 +61,7 @@ const mockEditor = {
 };
 
 const mockEditorModel = {
+  setEOL: jest.fn(),
   updateOptions: jest.fn()
 };
 const mockCreateEditor = jest.fn().mockReturnValue(mockEditor);
@@ -199,6 +200,21 @@ describe("MonacoEditor lifeCycle methods set up", () => {
 
     // We expect setValue is called once on componentDidMount when the props.value does not have different value.
     expect(mockEditor.setValue).toHaveBeenCalledTimes(0);
+  });
+
+  it("Should call setEOL when creating editor", () => {
+    mount(
+      <MonacoEditor
+        {...monacoEditorCommonProps}
+        channels={undefined}
+        onChange={jest.fn()}
+        onFocusChange={jest.fn()}
+        editorFocused={true}
+      />
+    );
+    expect(Monaco.editor.createModel).toHaveBeenCalledTimes(1);
+    expect(Monaco.editor.create).toHaveBeenCalledTimes(1);
+    expect(mockEditorModel.setEOL).toHaveBeenCalledTimes(1);
   });
 });
 
