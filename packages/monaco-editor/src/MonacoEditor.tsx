@@ -295,7 +295,7 @@ export default class MonacoEditor
         model = monaco.editor.createModel(this.props.value, this.props.language, uri);
       }
 
-      // Set line endings to \n line feed to be consistent across OS platforms. This will auto-normalize the line 
+      // Set line endings to \n line feed to be consistent across OS platforms. This will auto-normalize the line
       // endings of the current value to use \n and any future values produced by the Monaco editor will use \n.
       model.setEOL(monaco.editor.EndOfLineSequence.LF);
 
@@ -466,34 +466,34 @@ export default class MonacoEditor
       // Get a reference to the current editor
       const editor = this.editor;
 
-      // We need to set the model in a separate event because the `language` prop update happens before the
-      // internal editor receives an update to the cursor position when invoking language magics. Additionally,
-      // we need to dispose of the old model in a separate event. We cannot dispose of the model within the
-      // componentDidUpdate method or else the editor will throw an exception. Zero in the timeout field
-      // means execute immediately but in a seperate next event.
-      setTimeout(() => {
-        const newUri = DocumentUri.createCellUri(contentRef, id, language);
-        if (!monaco.editor.getModel(newUri)) {
-          // Save the cursor position before we set new model.
-          const position = editor.getPosition();
+      const newUri = DocumentUri.createCellUri(contentRef, id, language);
+      if (!monaco.editor.getModel(newUri)) {
+        // Save the cursor position before we set new model.
+        const position = editor.getPosition();
 
-          // Set new model targeting the changed language.
-          editor.setModel(monaco.editor.createModel(value, language, newUri));
+        // Set new model targeting the changed language
+        // Note the new model should be set in a synchronous manner, if we do it asynchronously (e.g. in a setTimeout callback),
+        // there could be subsequent value changes coming up modifying the old model and the new one is still with the old value.
+        editor.setModel(monaco.editor.createModel(value, language, newUri));
 
-          // Restore cursor position to new model.
-          if (position) {
-            editor.setPosition(position);
-          }
-
-          // Set focus
-          if (editorFocused && !editor.hasWidgetFocus()) {
-            editor.focus();
-          }
-
+        // We need to dispose of the old model in a separate event. We cannot dispose of the model within the
+        // componentDidUpdate method or else the editor will throw an exception. Zero in the timeout field
+        // means execute immediately but in a seperate next event.
+        setTimeout(() => {
           // Dispose the old model
           model.dispose();
+        }, 0);
+
+        // Restore cursor position to new model.
+        if (position) {
+          editor.setPosition(position);
         }
-      }, 0);
+
+        // Set focus
+        if (editorFocused && !editor.hasWidgetFocus()) {
+          editor.focus();
+        }
+      }
     }
 
     const monacoUpdateOptions: monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions = {
