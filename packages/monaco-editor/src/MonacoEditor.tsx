@@ -471,10 +471,14 @@ export default class MonacoEditor
         // Save the cursor position before we set new model.
         const position = editor.getPosition();
 
-        // Set new model targeting the changed language
+        // Set new model targeting the changed language.
         // Note the new model should be set in a synchronous manner, if we do it asynchronously (e.g. in a setTimeout callback),
         // there could be subsequent value changes coming up modifying the old model and the new one is still with the old value.
-        editor.setModel(monaco.editor.createModel(value, language, newUri));
+        // Set line endings to \n line feed to be consistent across OS platforms. This will auto-normalize the line 
+        // endings of the current value to use \n and any future values produced by the Monaco editor will use \n.
+        const newModel = monaco.editor.createModel(value, language, newUri);
+        newModel.setEOL(monaco.editor.EndOfLineSequence.LF);
+        editor.setModel(newModel);
 
         // We need to dispose of the old model in a separate event. We cannot dispose of the model within the
         // componentDidUpdate method or else the editor will throw an exception. Zero in the timeout field
