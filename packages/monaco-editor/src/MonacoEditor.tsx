@@ -478,7 +478,11 @@ export default class MonacoEditor
           const position = editor.getPosition();
 
           // Set new model targeting the changed language.
-          editor.setModel(monaco.editor.createModel(value, language, newUri));
+          // Set line endings to \n line feed to be consistent across OS platforms. This will auto-normalize the line 
+          // endings of the current value to use \n and any future values produced by the Monaco editor will use \n.
+          const newModel = monaco.editor.createModel(value, language, newUri);
+          newModel.setEOL(monaco.editor.EndOfLineSequence.LF);
+          editor.setModel(newModel);
 
           // Restore cursor position to new model.
           if (position) {
