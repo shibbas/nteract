@@ -164,8 +164,9 @@ export function deepFreeze<T>(object: T): DeepReadonly<T> {
     // getOwnPropertyNames assures us we can index on name
     const value = (object as any)[name];
 
-    (object as any)[name] =
-      value && typeof value === "object" ? deepFreeze(value) : value;
+    if ((value && typeof value === "object") || typeof value === "function") {
+      deepFreeze(value);
+    }
   }
 
   return (Object.freeze(object) as unknown) as DeepReadonly<T>;
